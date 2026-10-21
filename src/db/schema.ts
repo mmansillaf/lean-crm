@@ -59,23 +59,37 @@ export const whatsappInstances = pgTable("whatsapp_instances", {
   provider: text("provider").notNull(), // 'meta', 'waha'
   name: text("name").notNull(),
   phoneNumber: text("phone_number").notNull(),
+  department: text("department").default("sales").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   credentials: jsonb("credentials").default({}).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-// 5. Contactos
+// 5. Cuentas de Correo
+export const emailAccounts = pgTable("email_accounts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
+  emailAddress: text("email_address").notNull(),
+  displayName: text("display_name").notNull(),
+  provider: text("provider").notNull(), // 'resend', 'smtp', 'sendgrid', 'postmark'
+  settings: jsonb("settings").default({}).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// 6. Contactos
 export const contacts = pgTable("contacts", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
-  phone: text("phone").notNull(),
-  fullName: text("full_name"),
+  phone: text("phone"),
   email: text("email"),
+  fullName: text("full_name"),
+  companyName: text("company_name"),
   metadata: jsonb("metadata").default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-// 6. Pipelines
+// 7. Pipelines
 export const pipelines = pgTable("pipelines", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
@@ -84,7 +98,7 @@ export const pipelines = pgTable("pipelines", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-// 7. Deals
+// 8. Deals
 export const deals = pgTable("deals", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
@@ -97,11 +111,13 @@ export const deals = pgTable("deals", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-// 8. Conversaciones
+// 9. Conversaciones
 export const conversations = pgTable("conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
   organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
-  instanceId: uuid("instance_id").references(() => whatsappInstances.id, { onDelete: "cascade" }).notNull(),
+  channelType: text("channel_type").default("whatsapp").notNull(), // 'whatsapp', 'email'
+  instanceId: uuid("instance_id").references(() => whatsappInstances.id, { onDelete: "set null" }),
+  emailAccountId: uuid("email_account_id").references(() => emailAccounts.id, { onDelete: "set null" }),
   contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "cascade" }).notNull(),
   status: text("status").default("bot").notNull(), // 'bot', 'human', 'closed'
   assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
@@ -178,5 +194,31 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   sourceId: uuid("source_id").references(() => knowledgeSources.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   embedding: vector("embedding"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// 14. Sincronización Listmonk
+export const listmonkSyncSubscribers = pgTable("listmonk_sync_subscribers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
+  contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "cascade" }).notNull(),
+  listmonkSubscriberId: bigint("listmonk_subscriber_id", { mode: "number" }).notNull(),
+  email: text("email").notNull(),
+  status: text("status").default("enabled").notNull(),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// 15. Campañas Omnicanal
+export const campaigns = pgTable("campaigns", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
+  name: text("name").notNull(),
+  channel: text("channel").notNull(), // 'whatsapp', 'email'
+  status: text("status").default("draft").notNull(), // 'draft', 'scheduled', 'running', 'completed', 'failed'
+  totalRecipients: bigint("total_recipients", { mode: "number" }).default(0).notNull(),
+  sentCount: bigint("sent_count", { mode: "number" }).default(0).notNull(),
+  deliveredCount: bigint("delivered_count", { mode: "number" }).default(0).notNull(),
+  failedCount: bigint("failed_count", { mode: "number" }).default(0).notNull(),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
