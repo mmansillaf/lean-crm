@@ -18,7 +18,27 @@ services:
       timeout: 5s
       retries: 5
 
-  # WAHA Core/Plus para pruebas de WhatsApp Web (opcional)
+  # Motor de email marketing y campañas masivas
+  listmonk:
+    image: listmonk/listmonk:latest
+    container_name: lean_crm_listmonk
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      - LISTMONK_db__host=postgres
+      - LISTMONK_db__port=5432
+      - LISTMONK_db__user=postgres
+      - LISTMONK_db__password=postgrespassword
+      - LISTMONK_db__database=lean_crm
+      - LISTMONK_app__address=0.0.0.0:9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - full
+
+  # WAHA Core/Plus para WhatsApp Web local
   waha:
     image: devlikeapro/waha
     container_name: lean_crm_waha
@@ -34,6 +54,7 @@ services:
     volumes:
       - wahadata:/app/.sessions
     profiles:
+      - full
       - whatsapp-local
 
 volumes:
