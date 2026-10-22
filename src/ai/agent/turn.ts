@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { openai, createOpenAI } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { db } from "@/db";
@@ -9,11 +9,12 @@ import { searchLightRag } from "../lightrag/search";
 import { metaAdapter } from "@/channels/meta/adapter";
 import { wahaAdapter } from "@/channels/waha/adapter";
 import type { InboundMessage } from "@/channels/types";
+import { getEmbedding } from "../embeddings";
 
 export interface AgentTurnOptions {
-  modelProvider?: "openai" | "anthropic" | "google";
+  modelProvider?: "openai" | "anthropic" | "google" | "groq";
   modelName?: string;
-  queryEmbedding: number[]; // Vector del mensaje del usuario
+  queryEmbedding?: number[]; // Vector del mensaje del usuario
 }
 
 export async function processInboundAgentTurn(
@@ -74,6 +75,7 @@ export async function processInboundAgentTurn(
         organizationId,
         instanceId,
         contactId: contactRecord.id,
+        channelType: "whatsapp",
         status: "bot",
         lastMessagePreview: inbound.content,
         lastCustomerMessageAt: inbound.timestamp,
@@ -110,16 +112,33 @@ export async function processInboundAgentTurn(
     return { ok: true, handledByHuman: true };
   }
 
-  // 6. Consultar base de conocimiento LightRAG
-  const lightRagResult = await searchLightRag(organizationId, options.queryEmbedding);
+  // 6. Consultar base de conocimiento LightRAG con embedding real
+  const queryEmbedding =
+    options.queryEmbedding && options.queryEmbedding.length === 1536
+      ? options.queryEmbedding
+      : await getEmbedding(inbound.content);
 
-  // 7. Preparar modelo LLM
-  const provider = options.modelProvider || "openai";
+  const lightRagResult = await searchLightRag(organizationId, queryEmbedding);
+
+  // 7. Preparar modelo LLM (Groq / OpenAI / Anthropic / Google)
+  const defaultProvider = process.env.OPENAI_API_KEY?.startsWith("sk-")
+    ? "openai"
+    : process.env.GROQ_API_KEY
+    ? "groq"
+    : "openai";
+
+  const provider = options.modelProvider || defaultProvider;
   let model: any;
   if (provider === "anthropic") {
     model = anthropic(options.modelName || "claude-3-5-haiku-20241022");
   } else if (provider === "google") {
     model = google(options.modelName || "gemini-1.5-flash");
+  } else if (provider === "groq") {
+    const groq = createOpenAI({
+      baseURL: "https://api.groq.com/openai/v1",
+      apiKey: process.env.GROQ_API_KEY,
+    });
+    model = groq(options.modelName || "qwen/qwen3.8-27b");
   } else {
     model = openai(options.modelName || "gpt-4o-mini");
   }

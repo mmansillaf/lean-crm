@@ -1,6 +1,21 @@
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { openai, createOpenAI } from "@ai-sdk/openai";
 import { pool } from "@/db";
+import { getEmbedding } from "../embeddings";
+
+export function getDefaultModel() {
+  if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.startsWith("sk-")) {
+    return openai("gpt-4o-mini");
+  }
+  if (process.env.GROQ_API_KEY) {
+    const groq = createOpenAI({
+      baseURL: "https://api.groq.com/openai/v1",
+      apiKey: process.env.GROQ_API_KEY,
+    });
+    return groq("qwen/qwen3.8-27b");
+  }
+  return openai("gpt-4o-mini");
+}
 
 export interface ExtractedEntity {
   name: string;
@@ -22,7 +37,7 @@ export interface ExtractionResult {
 
 export async function extractGraphFromText(
   text: string,
-  model = openai("gpt-4o-mini")
+  model = getDefaultModel()
 ): Promise<ExtractionResult> {
   const prompt = `
 Analiza el siguiente texto y extrae entidades clave y las relaciones directas entre ellas para construir un grafo de conocimiento (Knowledge Graph).
@@ -46,11 +61,20 @@ ${text}
       model,
       prompt,
       temperature: 0.1,
+      maxTokens: 3000,
     });
 
-    const cleanJson = resultJson.replace(/```json\n?|```/g, "").trim();
-    return JSON.parse(cleanJson);
-  } catch {
+    const jsonMatch = resultJson.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { entities: [], relations: [] };
+    }
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      entities: Array.isArray(parsed.entities) ? parsed.entities : [],
+      relations: Array.isArray(parsed.relations) ? parsed.relations : [],
+    };
+  } catch (err) {
+    console.warn("Error parseando grafo:", err);
     return { entities: [], relations: [] };
   }
 }

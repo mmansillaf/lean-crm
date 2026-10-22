@@ -25,7 +25,13 @@ export async function searchLightRag(
     maxHops?: number;
   } = {}
 ): Promise<LightRagResult> {
-  const threshold = options.matchThreshold ?? 0.45;
+  const defaultThreshold = process.env.LIGHTRAG_MATCH_THRESHOLD
+    ? parseFloat(process.env.LIGHTRAG_MATCH_THRESHOLD)
+    : process.env.OPENAI_API_KEY?.startsWith("sk-")
+    ? 0.35
+    : 0.14;
+
+  const threshold = options.matchThreshold ?? defaultThreshold;
   const topEntities = options.topEntities ?? 3;
   const maxHops = options.maxHops ?? 2;
 
