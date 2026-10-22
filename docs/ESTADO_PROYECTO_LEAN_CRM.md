@@ -1,7 +1,7 @@
 # ESTADO DEL PROYECTO LEAN CRM (CHECKPOINT DE REINICIO)
 **Fecha:** 2026-10-22  
 **Ruta:** `/home/cmansilla/Descargas/pycode/lean_crm`  
-**Rama Git:** `master` (Limpio)  
+**Rama Git:** `master`  
 
 ---
 
@@ -9,26 +9,24 @@
 
 | Componente | Estado | Detalle |
 |---|:---:|---|
-| **PostgreSQL 16 + pgvector** | 🟢 ACTIVO | Contenedor `lean_crm_postgres` en puerto 5432. 16 tablas relacionales + función recursiva `fn_lightrag_query`. |
+| **Estilos & UI (Tailwind + PostCSS)** | 🟢 CORREGIDO | Agregados `tailwind.config.js` y `postcss.config.mjs`. Compilación de CSS con diseño utilitario activo (16KB). |
+| **PostgreSQL 16 + pgvector** | 🟢 ACTIVO | Contenedor `lean_crm_postgres` en puerto 5432. 16 tablas relacionales + función `fn_lightrag_query`. |
 | **Suite de Pruebas** | 🟢 31/31 PASS | EARS, TDD, EDD y E2E sin fallos (`npm test`). |
 | **Compilación Frontend** | 🟢 BUILD OK | Next.js 15 compilado exitosamente (`next build`, 12 rutas listas). |
-| **Listmonk (Email Campaigns)** | 🟢 CONECTADO | `https://newsletter.vilmamonroy.com` (`cmansilla` / `ENERO1l%`). Validado vía API. |
-| **Groq API (Whisper STT)** | 🟢 ACTIVO | Clave `gsk_XiVMs...` validada HTTP 200. Modelo `whisper-large-v3`. |
-| **WhatsApp Dual-Engine** | 🟡 LISTO | Adaptadores Meta y WAHA programados. Pendiente vincular número (QR o Meta App). |
-| **Archivo `.env`** | 🟢 CONFIGURADO | Con permisos `600` en la raíz del proyecto. |
+| **Listmonk (Email Campaigns)** | 🟢 CONECTADO | `https://newsletter.vilmamonroy.com` (`cmansilla`). Validado vía API. |
+| **Groq API (Whisper STT)** | 🟢 ACTIVO | Clave configurada y validada en `.env`. Modelo `whisper-large-v3`. |
+| **WhatsApp Dual-Engine** | 🟢 LISTO | Webhooks Meta y WAHA funcionales. Pendiente vincular número real. |
+| **Archivo `.env`** | 🟢 CONFIGURADO | Permisos `600` en la raíz del proyecto. |
 
 ---
 
-## 2. Mapa de Rutas Web y Webhooks
+## 2. Próximo Paso Definido (Roadmap Inmediato)
 
-* `/inbox` — Live Chat Omnicanal con toggle Bot / Agente Humano.
-* `/kanban` — Pipeline comercial con tarjetas de Deals y valor monetario.
-* `/knowledge` — Visualizador de Nodos y Relaciones de Grafo LightRAG.
-* `/campaigns` — Difusión masiva Listmonk y WhatsApp.
-* `/settings` — Configuración White-Label, Multi-número y Cuentas de Correo.
-* `/api/webhooks/meta` — Inbound Webhook oficial Meta Cloud API con firma HMAC.
-* `/api/webhooks/waha` — Inbound Webhook WAHA NOWEB con descarte `fromMe`.
-* `/api/webhooks/email` — Inbound Webhook de correo con auto-sincronización Listmonk.
+**Objetivo:** Permitir que el agente responda por WhatsApp sobre un documento PDF vía LightRAG.
+
+1. **Parser PDF:** Instalar e implementar extractor de texto (`pdf-parse` o equivalente).
+2. **Embeddings Reales:** Reemplazar vectores dummy en `turn.ts` y webhooks con generador real (`text-embedding-3-small`).
+3. **Pipeline de Ingesta:** Endpoint/script para cargar PDF, extraer entidades/relaciones con `extractGraphFromText` y poblar `knowledge_sources` / `knowledge_entities`.
 
 ---
 
@@ -40,12 +38,9 @@ cd /home/cmansilla/Descargas/pycode/lean_crm
 # 1. Asegurar contenedor de base de datos arriba:
 docker compose up -d postgres
 
-# 2. (Opcional) Levantar WAHA para escanear QR de WhatsApp:
-docker compose --profile whatsapp-local up -d waha
-
-# 3. Iniciar el servidor web interactivo:
+# 2. Iniciar el servidor de desarrollo:
 npm run dev
 
-# 4. Verificar tests en cualquier momento:
+# 3. Verificar tests:
 npm test
 ```
