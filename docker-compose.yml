@@ -43,14 +43,17 @@ services:
     image: devlikeapro/waha
     container_name: lean_crm_waha
     restart: unless-stopped
-    ports:
-      - "3001:3000"
+    network_mode: host
     environment:
-      WHATSAPP_HOOK_URL: http://host.docker.internal:3000/api/webhooks/waha
-      WHATSAPP_HOOK_EVENTS: message,message.any,state.change
+      PORT: 3001
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WAHA_API_KEY: ${WAHA_API_KEY:-waha_crm_secret_key_2026}
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER:-admin}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASS:-adminpassword2026}
+      WAHA_PRINT_QR: "true"
+      WHATSAPP_HOOK_URL: http://127.0.0.1:3000/api/webhooks/waha
+      WHATSAPP_HOOK_EVENTS: message,state.change
       WAHA_DASHBOARD_ENABLED: "true"
-      WAHA_DASHBOARD_USERNAME: admin
-      WAHA_DASHBOARD_PASSWORD: adminpassword
     volumes:
       - wahadata:/app/.sessions
     profiles:

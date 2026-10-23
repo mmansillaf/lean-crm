@@ -14,11 +14,18 @@ export const wahaAdapter: ChannelAdapter = {
     const baseUrl = creds.baseUrl || "http://localhost:3001";
     const session = creds.session || "default";
 
-    // Formato WAHA para destinatario: teléfono con @c.us
-    const chatId = payload.toPhone.includes("@") ? payload.toPhone : `${payload.toPhone.replace(/\D/g, "")}@c.us`;
+    // Formato WAHA para destinatario: teléfono con @c.us o @lid
+    let chatId = payload.toPhone;
+    if (chatId.includes(":")) {
+      chatId = chatId.replace(/:[0-9]+@/, "@");
+    }
+    if (!chatId.includes("@")) {
+      chatId = `${chatId.replace(/\D/g, "")}@c.us`;
+    }
 
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (creds.apiKey) headers["X-Api-Key"] = creds.apiKey;
+    const apiKey = creds.apiKey || process.env.WAHA_API_KEY;
+    if (apiKey) headers["X-Api-Key"] = String(apiKey);
 
     try {
       let endpoint = `${baseUrl}/api/sendText`;
@@ -75,12 +82,52 @@ export const wahaAdapter: ChannelAdapter = {
     if (payload.fromMe) return [];
 
     const rawFrom = String(payload.from || "");
-    const fromPhone = rawFrom.replace("@c.us", "").replace(/\D/g, "");
+    // Ignorar grupos, canales y estados de difusión
+    if (
+      rawFrom.includes("@g.us") ||
+      rawFrom.includes("@broadcast") ||
+      rawFrom.includes("@newsletter") ||
+      Boolean((payload as any).participant)
+    ) {
+      return [];
+    }
+
+    let fromPhone = rawFrom
+      .replace("@c.us", "")
+      .replace("@s.whatsapp.net", "")
+      .replace(/@.+/, "")
+      .replace(/\D/g, "");
+
+    // Si viene de un LID, extraer el número de teléfono real desde los campos alternativos de Baileys
+    const altJid =
+      (payload._data as any)?.key?.participantAlt ||
+      (payload._data as any)?.key?.remoteJidAlt ||
+      (payload._data as any)?.fromAlt ||
+      (payload as any)?.fromAlt;
+
+    if (altJid && typeof altJid === "string") {
+      const parsedAlt = altJid.replace("@s.whatsapp.net", "").replace("@c.us", "").replace(/\D/g, "");
+      if (parsedAlt && parsedAlt.length >= 8) {
+        fromPhone = parsedAlt;
+      }
+    }
+
+    if (!fromPhone || fromPhone.length < 7) return [];
+
     const externalMessageId = String(payload.id || "");
     const timestamp = payload.timestamp ? new Date(Number(payload.timestamp) * 1000) : new Date();
 
     let messageType: InboundMessage["messageType"] = "text";
-    let content = String(payload.body || "");
+    let content = String(
+      payload.body ||
+        payload.text ||
+        (payload as any).caption ||
+        (payload._data as any)?.body ||
+        (payload._data as any)?.text ||
+        (payload.message as any)?.conversation ||
+        (payload.message as any)?.extendedTextMessage?.text ||
+        ""
+    ).trim();
     let mediaUrl: string | undefined;
 
     if (payload.hasMedia) {
@@ -97,12 +144,17 @@ export const wahaAdapter: ChannelAdapter = {
       }
     }
 
+    const senderName =
+      (payload as any)?.pushName ||
+      (payload._data as any)?.notifyName ||
+      undefined;
+
     return [
       {
         instanceId: String(body.session || "default"),
         externalMessageId,
         fromPhone,
-        senderName: (payload._data as any)?.notifyName,
+        senderName,
         messageType,
         content,
         mediaUrl,

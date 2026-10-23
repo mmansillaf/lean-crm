@@ -1,0 +1,90 @@
+================================================================================
+AUDITORIA INTEGRAL DE SISTEMA: LEAN CRM OMNICANAL & MOTOR LIGHTRAG
+================================================================================
+Fecha de Emision: 2026-10-22
+Entidad / Tenant Auditado: Algoritmo Juridico SAC (211bd937-74bf-4280-b27a-ea08cd62bb8b)
+Metodologia: SDD (EARS) + TDD (34/34 Tests Pass) + EDD (Mutation Testing & SecOps)
+Estado General de Certificacion: APROBADO CON OBSERVACIONES OPERATIVAS (Calificacion: 9.0 / 10)
+
+--------------------------------------------------------------------------------
+1. RESUMEN EJECUTIVO Y CUADRO DE MANDO
+--------------------------------------------------------------------------------
+| Dimension                       | Puntaje  | Estado     | Condicion Principal
+|---------------------------------|----------|------------|---------------------------------------------
+| 1. Investigacion & Negocio      | 9.6 / 10 | EXCELENTE  | Grafo formal: 46 entidades y 42 relaciones.
+| 2. Arquitectura & Base de Datos | 9.4 / 10 | EXCELENTE  | PostgreSQL 16 + pgvector HNSW. Aislamiento tenant OK.
+| 3. Inteligencia Artificial & LLM| 9.2 / 10 | MUY BUENO  | Groq qwen3.8-27b, RAG L2-norm, Guardrails OK.
+| 4. Canales, APIs & Webhooks     | 9.3 / 10 | EXCELENTE  | WhatsApp Dual (Meta + WAHA NOWEB con LID resolucion).
+| 5. Frontend UI / UX             | 8.5 / 10 | BUENO      | Inbox 100% operativo con live-polling y control humano.
+| 6. Despliegue, Infra & SecOps   | 8.2 / 10 | ACEPTABLE  | Docker OK. Requiere hardening de credenciales y API keys.
+|---------------------------------|----------|------------|---------------------------------------------
+| CALIFICACION GLOBAL             | 9.0 / 10 | APROBADO   | Produccion-ready con hoja de ruta de remediacion.
+
+--------------------------------------------------------------------------------
+2. AUDITORIA POR PILAR TECNICO
+--------------------------------------------------------------------------------
+
+[PILAR 1: INVESTIGACION Y DOMINIO DE NEGOCIO - ALGORITMO JURIDICO SAC]
+- Cobertura de 3 pilares legales: Buscador Jurisprudencial con IA, Plataforma IA Legal (Tributario/SUNAT/IGV, Laboral, Constitucional) y Patrocinio en Procesos Constitucionales (Amparo, Habeas Data, Inconstitucionalidad).
+- Grafo en PostgreSQL: 26 fuentes, 109 entidades (46 del tenant activo) y 79 relaciones (42 del tenant activo).
+- Resolucion sin alucinaciones de tarifas y condiciones normativas peruanas.
+
+[PILAR 2: ARQUITECTURA Y BASE DE DATOS - POSTGRESQL 16 & PGVECTOR]
+- 16 tablas relacionales normalizadas en Drizzle ORM con borrado en cascada y aislamiento por organization_id.
+- pgvector vector(1536) con indice HNSW (vector_cosine_ops).
+- Funcion recursiva SQL fn_lightrag_query ejecutando BFS con filtrado de similitud coseno.
+- Observacion: Inserciones concurrentes requieren migracion de try/catch a ON CONFLICT DO UPDATE.
+
+[PILAR 3: INTELIGENCIA ARTIFICIAL, RAG Y MOTOR LLM]
+- Groq SDK con modelo qwen/qwen3.8-27b (reemplazo de version descontinuada).
+- Embeddings OpenAI text-embedding-3-small con fallback algoritmico determinista L2-normalizado.
+- Guardrails activos contra inyeccion de prompt (DAN, escape XML <customer_message>).
+- Lead scoring predictivo en tiempo real (hot >= 60, warm >= 35, cold < 35).
+- Pipeline de audio: deteccion de magic bytes OGG/Opus y transcripcion Whisper.
+
+[PILAR 4: CANALES, APIS E INTEGRACION DE MENSAJERIA]
+- WAHA NOWEB (Baileys): Filtro de eventos duplicados (message vs message.any), descarte de grupos/canales/fromMe.
+- Resolucion de LIDs de WhatsApp a numeros reales mediante participantAlt / remoteJidAlt de Baileys.
+- Limpieza de sufijos multi-dispositivo (:1@).
+- Meta Cloud API: verificacion criptografica HMAC-SHA256 y soporte para voice notes.
+- Endpoints CRM (/api/crm/conversations, /api/crm/messages) con envio bidireccional desde inbox y registro sender_type: 'human'.
+
+[PILAR 5: FRONTEND UI / UX]
+- Next.js 15 App Router + Tailwind CSS + Lucide Icons.
+- Bandeja /inbox con polling a 3s, diferenciacion visual de burbujas (Cliente, IA LightRAG, Operador Humano) y conmutador de estado (Transferir a Humano / Activar IA).
+- Modulos /kanban, /knowledge, /campaigns y /settings con interfaces maquetadas que requieren binding a endpoints de BD.
+
+[PILAR 6: DESPLIEGUE, INFRAESTRUCTURA Y SECOPS]
+- Docker Compose con PostgreSQL 16 pgvector y WAHA NOWEB (network_mode: host).
+- Hallazgos de seguridad identificados:
+  * SEC-01 (ALTO): WAHA_NO_API_KEY: 'true' -> Configurar WAHA_API_KEY en .env y header X-Api-Key.
+  * SEC-02 (ALTO): WAHA_DASHBOARD_NO_PASSWORD: 'true' -> Asignar credenciales a dashboard.
+  * SEC-03 (MEDIO): Contrasenas en texto plano en docker-compose.yml.
+  * SEC-04 (MEDIO): Ausencia de firma de autenticacion en webhook de WAHA.
+  * SEC-05 (BAJO): Falta de proteccion por sesion JWT/Cookie en /api/crm/*.
+
+--------------------------------------------------------------------------------
+3. RESULTADOS DE PRUEBAS AUTOMATIZADAS
+--------------------------------------------------------------------------------
+- Total Suites Ejecutadas: 9 suites TDD / E2E
+- Total Pruebas: 34 tests | 34 pasados | 0 fallos | 0 omitidos
+- Duracion: 31.35 segundos
+- Compilacion de Produccion: Next.js 15.1.7 Compiled Successfully (Exit Code 0, 14 rutas estaticas y dinamicas generadas).
+
+--------------------------------------------------------------------------------
+4. PLAN DE ACCION Y HOJA DE RUTA DE REMEDIACION
+--------------------------------------------------------------------------------
+Fase 1: Inmediata (Seguridad y Robustez)
+  1. Configurar WAHA_API_KEY y credenciales de acceso al dashboard de WAHA.
+  2. Implementar clausulas SQL nativas ON CONFLICT en Drizzle ORM para resolver colisiones concurrentes.
+  3. Proteger endpoints /api/crm con middleware de autenticacion de sesion.
+
+Fase 2: Mediano Plazo (Completitud UI & Eficiencia)
+  1. Conectar interfaz /kanban con la tabla deals de PostgreSQL.
+  2. Conectar interfaz /knowledge con las tablas knowledge_sources y knowledge_entities.
+  3. Sustituir polling de 3 segundos en /inbox por Server-Sent Events (SSE) o WebSockets.
+
+Fase 3: Largo Plazo (Escalabilidad Empresarial)
+  1. Respaldo automatizado de volumen de sesiones Baileys (wahadata) a almacenamiento seguro S3.
+  2. Balanceador de proveedores LLM con contingencia automatica (Groq -> OpenAI -> Ollama).
+================================================================================

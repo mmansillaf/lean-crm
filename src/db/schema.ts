@@ -78,16 +78,23 @@ export const emailAccounts = pgTable("email_accounts", {
 });
 
 // 6. Contactos
-export const contacts = pgTable("contacts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
-  phone: text("phone"),
-  email: text("email"),
-  fullName: text("full_name"),
-  companyName: text("company_name"),
-  metadata: jsonb("metadata").default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
+    phone: text("phone"),
+    email: text("email"),
+    fullName: text("full_name"),
+    companyName: text("company_name"),
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_org_phone").on(t.organizationId, t.phone),
+    uniqueIndex("uq_org_email").on(t.organizationId, t.email),
+  ]
+);
 
 // 7. Pipelines
 export const pipelines = pgTable("pipelines", {
@@ -112,37 +119,49 @@ export const deals = pgTable("deals", {
 });
 
 // 9. Conversaciones
-export const conversations = pgTable("conversations", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
-  channelType: text("channel_type").default("whatsapp").notNull(), // 'whatsapp', 'email'
-  instanceId: uuid("instance_id").references(() => whatsappInstances.id, { onDelete: "set null" }),
-  emailAccountId: uuid("email_account_id").references(() => emailAccounts.id, { onDelete: "set null" }),
-  contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "cascade" }).notNull(),
-  status: text("status").default("bot").notNull(), // 'bot', 'human', 'closed'
-  assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
-  lastMessagePreview: text("last_message_preview"),
-  lastCustomerMessageAt: timestamp("last_customer_message_at", { withTimezone: true }),
-  isWithin24h: boolean("is_within_24h").default(true),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
+    channelType: text("channel_type").default("whatsapp").notNull(), // 'whatsapp', 'email'
+    instanceId: uuid("instance_id").references(() => whatsappInstances.id, { onDelete: "set null" }),
+    emailAccountId: uuid("email_account_id").references(() => emailAccounts.id, { onDelete: "set null" }),
+    contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "cascade" }).notNull(),
+    status: text("status").default("bot").notNull(), // 'bot', 'human', 'closed'
+    assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+    lastMessagePreview: text("last_message_preview"),
+    lastCustomerMessageAt: timestamp("last_customer_message_at", { withTimezone: true }),
+    isWithin24h: boolean("is_within_24h").default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("uq_conv_org_instance_contact").on(t.organizationId, t.instanceId, t.contactId),
+  ]
+);
 
-// 9. Mensajes
-export const messages = pgTable("messages", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
-  conversationId: uuid("conversation_id").references(() => conversations.id, { onDelete: "cascade" }).notNull(),
-  externalId: text("external_id").notNull(), // Idempotencia
-  senderType: text("sender_type").notNull(), // 'customer', 'ai', 'human'
-  senderId: uuid("sender_id").references(() => users.id, { onDelete: "set null" }),
-  content: text("content").notNull(),
-  messageType: text("message_type").notNull(), // 'text', 'audio', 'image', 'document', 'interactive'
-  mediaUrl: text("media_url"),
-  status: text("status").notNull(), // 'received', 'sent', 'delivered', 'read', 'failed'
-  metadata: jsonb("metadata").default({}),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+// 10. Mensajes
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }).notNull(),
+    conversationId: uuid("conversation_id").references(() => conversations.id, { onDelete: "cascade" }).notNull(),
+    externalId: text("external_id").notNull(), // Idempotencia
+    senderType: text("sender_type").notNull(), // 'customer', 'ai', 'human'
+    senderId: uuid("sender_id").references(() => users.id, { onDelete: "set null" }),
+    content: text("content").notNull(),
+    messageType: text("message_type").notNull(), // 'text', 'audio', 'image', 'document', 'interactive'
+    mediaUrl: text("media_url"),
+    status: text("status").notNull(), // 'received', 'sent', 'delivered', 'read', 'failed'
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("messages_organization_id_external_id_key").on(t.organizationId, t.externalId),
+  ]
+);
 
 // 10. Fuentes de Conocimiento
 export const knowledgeSources = pgTable("knowledge_sources", {

@@ -106,7 +106,8 @@ create table if not exists public.conversations (
   last_customer_message_at timestamptz,
   is_within_24h boolean default true,
   updated_at timestamptz not null default now(),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint uq_conv_org_instance_contact unique (organization_id, instance_id, contact_id)
 );
 
 -- 10. Mensajes Omnicanal
