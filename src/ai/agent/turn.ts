@@ -186,9 +186,13 @@ ${inbound.content}
   let replyText = rawReply.trim();
   let triggerHandoff = false;
 
-  if (replyText.startsWith("[HUMAN_HANDOFF]")) {
+  // Detección robusta de handoff en cualquier posición del texto
+  if (/\[?HUMAN_HANDOFF\]?/i.test(replyText)) {
     triggerHandoff = true;
-    replyText = replyText.replace("[HUMAN_HANDOFF]", "").trim();
+    replyText = replyText
+      .replace(/\[?HUMAN_HANDOFF\]?:?/gi, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   }
 
   // 10. Si hubo handoff, actualizar estado de la conversación
