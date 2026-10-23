@@ -1,0 +1,62 @@
+================================================================================
+GUIA DE MATERIAS, PREGUNTAS FRECUENTES Y REGLAS COMERCIALES
+Proyecto: Lean CRM — Algoritmo Juridico SAC
+Fecha: 2026-10-23
+================================================================================
+
+1. FUENTES EXCLUSIVAS Y ALCANCE AUTORIZADO
+El motor RAG y el bot de WhatsApp estan acotados estrictamente a 3 sitios web:
+- Portal Corporativo y Buscador de Normas: https://algoritmojuridico.com/buscador
+- Plataforma IA Legal Especializada: https://servicios.algoritmojuridico.com/ialegal/
+- Buscador de Procesos Constitucionales (TC 2016-2026): https://procesosconstitucionales.algoritmojuridico.com/
+
+(Toda informacion demo dental o ajena fue purgada de PostgreSQL. Opera exclusivamente con 46 entidades y 42 relaciones juridicas).
+
+================================================================================
+2. CATALOGO OFICIAL DE TARIFAS Y REGLAS DE ESCALADO
+- Suscripcion por 6 Meses: S/ 250 PEN (Soles peruanos).
+- Suscripcion por 1 Año: S/ 450 PEN (Soles peruanos).
+- Cuentas Corporativas (> 3 cuentas): Si solicitan 4 o mas cuentas para un estudio o institucion, activa de inmediato Handoff a asesor comercial ([HUMAN_HANDOFF]).
+- Limite operativo: No ejerce representacion legal directa ante juzgados o SUNAT; orienta y transfiere a un abogado si se requiere patrocinio.
+
+================================================================================
+3. BANCO DE PREGUNTAS POR CATEGORIA
+
+[CATEGORIA A: PRECIOS, PLANES Y SUSCRIPCIONES]
+* "¿Cuanto cuesta la suscripcion al buscador de jurisprudencia?"
+  -> Detalla planes de 6 meses (S/ 250) y 1 año (S/ 450).
+* "Somos un estudio de 5 abogados y queremos usar la plataforma, ¿que precio nos dan?"
+  -> Detecta mas de 3 cuentas y transfiere a asesor comercial.
+* "¿Que beneficios incluye el plan anual de 450 soles?"
+  -> Explica acceso ilimitado, alertas de El Peruano y analisis de compliance.
+
+[CATEGORIA B: SOLUCIONES TECNOLOGICAS DE ALGORITMO JURIDICO SAC]
+* "¿Que funciones tiene su Analizador de Contratos IA?"
+  -> Explica deteccion de clausulas abusivas, omisiones y riesgos en segundos.
+* "¿Puedo redactar minutas o poderes con su sistema?"
+  -> Describe el Generador de Documentos Legales bajo normativa peruana.
+* "¿Como funciona su buscador frente a las publicaciones de El Peruano?"
+  -> Detalla indexacion continua de leyes y alertas normativas directas.
+
+[CATEGORIA C: DERECHO TRIBUTARIO & SUNAT]
+* "¿Cuales son las exigencias del credito fiscal en el IGV segun la ley peruana?"
+  -> Detalla bancarizacion, detracciones y comprobantes de pago validos.
+* "¿Que establece el articulo 37 de la LIR sobre causalidad de gastos?"
+  -> Cita la Ley del Impuesto a la Renta y criterios del Tribunal Fiscal.
+
+[CATEGORIA D: PROCESOS CONSTITUCIONALES & TRIBUNAL CONSTITUCIONAL (2016-2026)]
+* "¿Que resoluciones tienen sobre Habeas Data en los ultimos 5 años?"
+  -> Explica el repositorio de 11 años de jurisprudencia constitucional del TC.
+* "¿Cuales son los precedentes vinculantes en Procesos de Amparo contra resoluciones judiciales?"
+  -> Expone doctrina sobre debido proceso y tutela jurisdiccional efectiva.
+
+[CATEGORIA E: DERECHO LABORAL & SUNAFIL]
+* "¿Como se calculan las vacaciones truncas y la CTS en el regimen general?"
+  -> Explica normativa de beneficios sociales y plazos legales.
+* "¿Que multas impone SUNAFIL por exceso de jornada sin pago de horas extra?"
+  -> Cita infracciones laborales vigentes.
+
+[CATEGORIA F: DERECHO CIVIL & POSESION]
+* "¿Que criterios vinculantes fijo el IV Pleno Casatorio Civil sobre ocupantes precarios?"
+  -> Resume supuestos de posesion sin titulo o con titulo fenecido.
+================================================================================
