@@ -24,6 +24,10 @@ export async function processInboundAgentTurn(
   inbound: InboundMessage,
   options: AgentTurnOptions
 ) {
+  const safeTimestamp = inbound.timestamp instanceof Date
+    ? inbound.timestamp
+    : (inbound.timestamp ? new Date(inbound.timestamp) : new Date());
+
   // Ejecución atómica del registro de contacto, conversación y mensaje en una transacción
   const { conv, contactRecord, alreadyProcessed } = await db.transaction(async (tx) => {
     // 1. Idempotencia: Verificar si el mensaje ya fue registrado
@@ -64,7 +68,7 @@ export async function processInboundAgentTurn(
         channelType: "whatsapp",
         status: "bot",
         lastMessagePreview: inbound.content,
-        lastCustomerMessageAt: inbound.timestamp,
+        lastCustomerMessageAt: safeTimestamp,
         isWithin24h: true,
         updatedAt: new Date(),
       })
@@ -72,7 +76,7 @@ export async function processInboundAgentTurn(
         target: [conversations.organizationId, conversations.instanceId, conversations.contactId],
         set: {
           lastMessagePreview: inbound.content,
-          lastCustomerMessageAt: inbound.timestamp,
+          lastCustomerMessageAt: safeTimestamp,
           isWithin24h: true,
           updatedAt: new Date(),
         },

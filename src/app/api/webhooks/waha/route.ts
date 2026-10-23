@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { wahaAdapter } from "@/channels/waha/adapter";
-import { processInboundAgentTurn } from "@/ai/agent/turn";
+import { enqueueWhatsAppTurn } from "@/crm/queue";
 import { db } from "@/db";
 import { whatsappInstances } from "@/db/schema";
-import { eq, or, and } from "drizzle-orm";
-import { getEmbedding } from "@/ai/embeddings";
+import { eq, and } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
@@ -47,15 +46,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (instance) {
-      // Ignorar mensajes sin texto
+      // Ignorar mensajes sin contenido de texto
       if (!msg.content || msg.content.length === 0) continue;
-      const queryEmbedding = await getEmbedding(msg.content);
 
-      await processInboundAgentTurn(instance.organizationId, instance.id, msg, {
-        queryEmbedding,
-      });
+      // Encolar de forma asíncrona en Redis para desacople inmediato
+      await enqueueWhatsAppTurn(instance.organizationId, instance.id, msg);
     }
   }
 
-  return NextResponse.json({ status: "ok" }, { status: 200 });
+  return NextResponse.json({ status: "enqueued" }, { status: 200 });
 }

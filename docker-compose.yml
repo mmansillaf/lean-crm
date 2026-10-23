@@ -60,6 +60,22 @@ services:
       - full
       - whatsapp-local
 
+  # Redis para colas de concurrencia y Pub/Sub SSE
+  redis:
+    image: redis:7-alpine
+    container_name: lean_crm_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   pgdata:
   wahadata:
+  redisdata:
