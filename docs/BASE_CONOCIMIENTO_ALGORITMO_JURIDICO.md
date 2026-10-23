@@ -36,11 +36,16 @@ Documento consolidado de funcionalidades, productos, herramientas tecnológicas 
 6. **Asistente Legal Virtual 24/7:**
    * Chatbot interactivo entrenado en normativa y doctrina jurídica peruana para triaje y resolución de consultas recurrentes.
 
-### 1.3. Tienda de Recursos y Suscripciones Especializadas
+### 1.3. Tienda de Recursos y Planes de Suscripción Oficiales
+* **Tarifas de Suscripción Oficiales:**
+  * **Suscripción por 6 meses:** S/ 250 Soles (PEN).
+  * **Suscripción por 1 año:** S/ 450 Soles (PEN).
+  * **Planes Corporativos / Multi-cuenta (Estudios Jurídicos e Instituciones):** Para requerimientos de más de 3 cuentas, se realiza transferencia inmediata con un asesor comercial (`[HUMAN_HANDOFF]`) para una propuesta a medida.
 * **Catálogo:** Libros y manuales técnicos en derecho tributario, laboral y administrativo (moneda: Soles S/ PEN).
-* **Pasarela:** Pasarela de pago integrada (Krypton/Niubiz).
-* **Suscripciones Normativas:**
-  * Alertas normativas inmediatas vía correo y mensajería ante publicaciones en El Peruano.
+* **Pasarela:** Pasarela de pago integrada (Krypton/Niubiz/Izipay).
+* **Beneficios de la Suscripción:**
+  * Acceso completo al Buscador de Normas y Jurisprudencia vinculante.
+  * Alertas normativas inmediatas ante publicaciones en El Peruano.
   * Análisis de impacto legal y guías prácticas de cumplimiento normativo (compliance).
 
 ---

@@ -23,7 +23,7 @@ export default function SettingsPage() {
               <label className="text-xs font-semibold text-slate-700 block mb-1">Nombre Comercial de la Empresa</label>
               <input
                 type="text"
-                defaultValue="Clínica Dental San Borja"
+                defaultValue="Algoritmo Jurídico SAC"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -32,7 +32,7 @@ export default function SettingsPage() {
               <div className="flex items-center">
                 <input
                   type="text"
-                  defaultValue="dental"
+                  defaultValue="algoritmojuridico"
                   className="w-full bg-slate-50 border border-slate-200 rounded-l-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <span className="bg-slate-100 border border-l-0 border-slate-200 px-3 py-2 text-xs text-slate-500 rounded-r-xl">

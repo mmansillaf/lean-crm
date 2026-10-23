@@ -3,9 +3,11 @@ import { db } from "@/db";
 import { knowledgeSources, knowledgeEntities, knowledgeRelations } from "@/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    // 1. Obtener fuentes con conteo de entidades
+    const orgId = "211bd937-74bf-4280-b27a-ea08cd62bb8b"; // Algoritmo Jurídico SAC
+
+    // 1. Obtener fuentes con conteo de entidades de la organización
     const sources = await db
       .select({
         id: knowledgeSources.id,
@@ -15,10 +17,11 @@ export async function GET() {
         createdAt: knowledgeSources.createdAt,
       })
       .from(knowledgeSources)
+      .where(eq(knowledgeSources.organizationId, orgId))
       .orderBy(desc(knowledgeSources.createdAt))
       .limit(20);
 
-    // 2. Muestreo de relaciones del grafo
+    // 2. Muestreo de relaciones del grafo de la organización
     const relations = await db
       .select({
         id: knowledgeRelations.id,
@@ -30,17 +33,20 @@ export async function GET() {
       .from(knowledgeRelations)
       .innerJoin(sql`knowledge_entities as src_e`, sql`src_e.id = ${knowledgeRelations.sourceEntityId}`)
       .innerJoin(sql`knowledge_entities as tgt_e`, sql`tgt_e.id = ${knowledgeRelations.targetEntityId}`)
+      .where(eq(knowledgeRelations.organizationId, orgId))
       .limit(15);
 
-    // 3. Conteo total de entidades y relaciones
+    // 3. Conteo total de entidades y relaciones de la organización
     const totalEntities = await db
       .select({ count: sql<number>`count(*)` })
       .from(knowledgeEntities)
+      .where(eq(knowledgeEntities.organizationId, orgId))
       .then((r) => Number(r[0]?.count || 0));
 
     const totalRelations = await db
       .select({ count: sql<number>`count(*)` })
       .from(knowledgeRelations)
+      .where(eq(knowledgeRelations.organizationId, orgId))
       .then((r) => Number(r[0]?.count || 0));
 
     return NextResponse.json({
