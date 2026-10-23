@@ -1,0 +1,138 @@
+================================================================================
+EVALUACION PONDERADA Y MATRIZ PROS/CONS: MODULOS DE EXPANSION LEAN CRM
+Proyecto: Lean CRM (Algoritmo Juridico SAC)
+Fecha: 2026-10-23
+Formula: Score = (Impacto * 0.45) + (ROI * 0.35) - (Esfuerzo * 0.20) [Base 10]
+================================================================================
+
+1. MATRIZ INTEGRAL DE EVALUACION Y PROS/CONS
+
+[01] Transcripcion de Voz (Whisper STT en Groq)
+- Categoria: WhatsApp / IA
+- Pros: Cero friccion para clientes que envian audio; costo ~$0 (Groq free tier); modulo ya probado.
+- Contras/Riesgos: Requiere descarga y buffering de binarios OGG de WAHA.
+- Metricas: Impacto: 5/5 | Esfuerzo: 1/5 | ROI: 5/5 | Score: 9.6 / 10
+- Prioridad: P0 - Inmediato
+
+[02] Mensajes Interactivos (Botones y Listas)
+- Categoria: WhatsApp / UX
+- Pros: Reduce errores tipograficos; guia al prospecto con 1 toque; alta conversion.
+- Contras/Riesgos: Clientes que insisten en escribir texto; mapeo de payload en WAHA.
+- Metricas: Impacto: 5/5 | Esfuerzo: 2/5 | ROI: 5/5 | Score: 9.2 / 10
+- Prioridad: P0 - Inmediato
+
+[03] Notas Internas Privadas en Inbox
+- Categoria: Operacion Inbox
+- Pros: Permite coordinacion confidencial entre abogados sin salir del chat; historial unico.
+- Contras/Riesgos: Riesgo de fuga a WhatsApp si falla el filtrado en backend.
+- Metricas: Impacto: 4/5 | Esfuerzo: 1/5 | ROI: 4/5 | Score: 8.6 / 10
+- Prioridad: P0 - Inmediato
+
+[04] Respuestas Rapidas (Snippets con /)
+- Categoria: Operacion Inbox
+- Pros: Estandariza respuestas legales recurrentes; reduce 70% de tipeo manual.
+- Contras/Riesgos: Mantenimiento y actualizacion periodica de la libreria de textos.
+- Metricas: Impacto: 4/5 | Esfuerzo: 2/5 | ROI: 4/5 | Score: 8.2 / 10
+- Prioridad: P1 - Corto plazo
+
+[05] Badge de Lead Scoring en Vivo
+- Categoria: Inteligencia CRM
+- Pros: Priorizacion visual de prospectos calientes (Hot/Warm/Cold); logica ya construida.
+- Contras/Riesgos: Requiere calibrar umbrales segun el cierre real de ventas.
+- Metricas: Impacto: 4/5 | Esfuerzo: 1/5 | ROI: 4/5 | Score: 8.6 / 10
+- Prioridad: P0 - Inmediato
+
+[06] Encuesta CSAT / NPS de Cierre
+- Categoria: Calidad / Post-Venta
+- Pros: Evaluacion cuantitativa del servicio; alerta inmediata de quejas P0; captura reseñas.
+- Contras/Riesgos: Fatiga si el cliente contacta frecuentemente.
+- Metricas: Impacto: 4/5 | Esfuerzo: 2/5 | ROI: 5/5 | Score: 8.7 / 10
+- Prioridad: P1 - Corto plazo
+
+[07] Recuperacion de Leads Inactivos (Cron / N8N)
+- Categoria: Automatizacion Comercial
+- Pros: Rescata prospectos frios a las 24h/48h sin intervencion humana; aumenta ingresos.
+- Contras/Riesgos: Insistencia puede provocar bloqueos o bajas (STOP).
+- Metricas: Impacto: 5/5 | Esfuerzo: 2/5 | ROI: 5/5 | Score: 9.2 / 10
+- Prioridad: P0 - Inmediato
+
+[08] Filtro DNI / RUC Automatico (SUNAT / RENIEC)
+- Categoria: Datos / LegalTech
+- Pros: Valida razon social y condicion de habido al instante; agiliza contratos.
+- Contras/Riesgos: Dependencia de API externa (costo o caidas del servicio).
+- Metricas: Impacto: 4/5 | Esfuerzo: 2/5 | ROI: 4/5 | Score: 8.2 / 10
+- Prioridad: P1 - Corto plazo
+
+[09] Agendamiento Real (Cal.com / Google Calendar)
+- Categoria: Conversion Comercial
+- Pros: Elimina friccion de coordinacion de horarios; crea salas de Meet/Zoom automaticas.
+- Contras/Riesgos: Requiere que los abogados mantengan su agenda actualizada.
+- Metricas: Impacto: 5/5 | Esfuerzo: 3/5 | ROI: 4/5 | Score: 8.0 / 10
+- Prioridad: P1 - Corto plazo
+
+[10] Generador de Cotizaciones PDF al Vuelo
+- Categoria: Documental LegalTech
+- Pros: Propuestas formales de alto impacto con membrete y QR enviadas al instante.
+- Contras/Riesgos: Requiere maquetar plantilla fija HTML/CSS para evitar desfases visuales.
+- Metricas: Impacto: 4/5 | Esfuerzo: 3/5 | ROI: 4/5 | Score: 7.6 / 10
+- Prioridad: P2 - Mediano plazo
+
+[11] Metricas & SLA Dashboard
+- Categoria: Analitica y Control
+- Pros: Monitoreo de tiempos de respuesta humana, conversion de embudo y resolucion del bot.
+- Contras/Riesgos: Requiere volumen historico de datos acumulados para ser significativo.
+- Metricas: Impacto: 3/5 | Esfuerzo: 3/5 | ROI: 3/5 | Score: 6.4 / 10
+- Prioridad: P2 - Mediano plazo
+
+[12] Redis Pub/Sub para SSE
+- Categoria: Infraestructura
+- Pros: Habilita escalado horizontal sin perdida de eventos en tiempo real en la UI.
+- Contras/Riesgos: Complejidad y consumo de memoria adicional en entorno de servidor unico.
+- Metricas: Impacto: 3/5 | Esfuerzo: 3/5 | ROI: 3/5 | Score: 6.4 / 10
+- Prioridad: P2 - Mediano plazo
+
+[13] Notificaciones Push para Operadores (Telegram)
+- Categoria: Alertas Operativas
+- Pros: Aviso inmediato en smartphone del abogado ante solicitud de handoff humano.
+- Contras/Riesgos: Depende de que el operador tenga instalada y activa la app de Telegram.
+- Metricas: Impacto: 4/5 | Esfuerzo: 2/5 | ROI: 3/5 | Score: 7.5 / 10
+- Prioridad: P2 - Mediano plazo
+
+[14] Webhook Instantaneo de Meta Ads
+- Categoria: Captacion Publicitaria
+- Pros: Contacto en menos de 60 segundos con leads de Facebook/Instagram Ads.
+- Contras/Riesgos: Requiere cuenta publicitaria activa con gasto continuo y verificacion Meta.
+- Metricas: Impacto: 4/5 | Esfuerzo: 4/5 | ROI: 4/5 | Score: 6.8 / 10
+- Prioridad: P3 - Futuro
+
+[15] Webhooks de Pago (Izipay)
+- Categoria: Pasarela de Pagos
+- Pros: Cierre de ventas y emision de comprobante automatico sin validar capturas manuales.
+- Contras/Riesgos: Proceso burocratico de homologacion tecnica y llaves criptograficas IPN.
+- Metricas: Impacto: 5/5 | Esfuerzo: 4/5 | ROI: 5/5 | Score: 8.0 / 10
+- Prioridad: P3 - Al final
+
+================================================================================
+2. ROADMAP SECUENCIAL RECOMENDADO
+
+FASE 1: DESPLIEGUE INMEDIATO (Score > 8.5)
+- Transcripcion de Voz (Whisper STT en Groq)
+- Mensajes Interactivos (Botones y Listas en WhatsApp)
+- Recuperacion de Leads Inactivos (Cron 24h/48h)
+- Notas Internas Privadas en Inbox
+- Badge de Lead Scoring en Vivo
+
+FASE 2: CONVERSION Y CALIDAD (Score 8.0 - 8.5)
+- Encuesta CSAT / NPS de Cierre
+- Respuestas Rapidas (Snippets /)
+- Filtro DNI / RUC Automatico (SUNAT / RENIEC)
+- Agendamiento Real (Cal.com / Google Calendar)
+
+FASE 3: ESCALABILIDAD Y FINANZAS (Score <= 8.0)
+- Generador de Cotizaciones PDF al Vuelo
+- Webhooks de Pago con Izipay (IPN)
+- Notificaciones Push Telegram
+- Metricas & SLA Dashboard
+- Redis Pub/Sub para SSE
+- Webhook Instantaneo de Meta Ads
+================================================================================
