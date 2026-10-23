@@ -14,7 +14,7 @@ systemctl start docker.socket
 
 # 2. Entrar a la carpeta del proyecto y levantar servicios
 cd /home/cmansilla/Descargas/pycode/lean_crm
-docker compose up -d postgres waha
+docker compose up -d
 
 # 3. Iniciar el servidor web y webhooks del CRM
 npm run dev

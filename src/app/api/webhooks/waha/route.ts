@@ -4,6 +4,7 @@ import { enqueueWhatsAppTurn } from "@/crm/queue";
 import { db } from "@/db";
 import { whatsappInstances } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { isPhoneBlacklisted } from "@/crm/blacklist";
 
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
@@ -21,6 +22,8 @@ export async function POST(req: NextRequest) {
   }
 
   const messages = wahaAdapter.parseWebhookPayload(body);
+  let enqueuedCount = 0;
+  let blockedCount = 0;
 
   for (const msg of messages) {
     // Buscar la instancia de WAHA por session name ("default") con prioridad en la organización activa
@@ -49,10 +52,20 @@ export async function POST(req: NextRequest) {
       // Ignorar mensajes sin contenido de texto
       if (!msg.content || msg.content.length === 0) continue;
 
+      // Descartar inmediatamente números en lista negra (0 tokens, 0 llamadas)
+      const blacklisted = await isPhoneBlacklisted(instance.organizationId, msg.fromPhone);
+      if (blacklisted) {
+        console.log(`[WAHA_WEBHOOK_BLOCKED] Mensaje ignorado de número bloqueado: ${msg.fromPhone}`);
+        blockedCount++;
+        continue;
+      }
+
       // Encolar de forma asíncrona en Redis para desacople inmediato
       await enqueueWhatsAppTurn(instance.organizationId, instance.id, msg);
+      enqueuedCount++;
     }
   }
 
-  return NextResponse.json({ status: "enqueued" }, { status: 200 });
+  const finalStatus = blockedCount > 0 && enqueuedCount === 0 ? "blocked" : "enqueued";
+  return NextResponse.json({ status: finalStatus }, { status: 200 });
 }

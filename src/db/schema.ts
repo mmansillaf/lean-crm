@@ -87,6 +87,7 @@ export const contacts = pgTable(
     email: text("email"),
     fullName: text("full_name"),
     companyName: text("company_name"),
+    isBlocked: boolean("is_blocked").default(false).notNull(),
     metadata: jsonb("metadata").default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -128,7 +129,7 @@ export const conversations = pgTable(
     instanceId: uuid("instance_id").references(() => whatsappInstances.id, { onDelete: "set null" }),
     emailAccountId: uuid("email_account_id").references(() => emailAccounts.id, { onDelete: "set null" }),
     contactId: uuid("contact_id").references(() => contacts.id, { onDelete: "cascade" }).notNull(),
-    status: text("status").default("bot").notNull(), // 'bot', 'human', 'closed'
+    status: text("status").default("bot").notNull(), // 'bot', 'human', 'closed', 'blocked'
     assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
     lastMessagePreview: text("last_message_preview"),
     lastCustomerMessageAt: timestamp("last_customer_message_at", { withTimezone: true }),

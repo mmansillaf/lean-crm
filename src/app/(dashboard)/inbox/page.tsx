@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { MessageSquare, Phone, Mail, Bot, User, CheckCheck, Send, Sparkles, Radio } from "lucide-react";
+import { MessageSquare, Phone, Mail, Bot, User, CheckCheck, Send, Sparkles, Radio, Ban } from "lucide-react";
 
 interface ConversationItem {
   id: string;
@@ -10,7 +10,8 @@ interface ConversationItem {
   phone: string | null;
   email: string | null;
   channel: string;
-  status: "bot" | "human" | "closed";
+  status: "bot" | "human" | "closed" | "blocked";
+  isBlocked?: boolean;
   metadata?: Record<string, any> | null;
   lastMessage: string | null;
   updatedAt: string;
@@ -176,6 +177,35 @@ export default function InboxPage() {
     }
   };
 
+  // Alternar Bloqueo de Contacto (Lista Negra)
+  const toggleBlockContact = async () => {
+    if (!activeConv) return;
+    const isCurrentlyBlocked = activeConv.status === "blocked" || activeConv.isBlocked;
+    const confirmMsg = isCurrentlyBlocked
+      ? "¿Deseas desbloquear este contacto para volver a recibir sus mensajes y permitir que el bot responda?"
+      : "¿Deseas bloquear a este remitente? El bot no responderá y sus mensajes serán descartados automáticamente.";
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch("/api/crm/blacklist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: activeConv.id,
+          action: isCurrentlyBlocked ? "unblock" : "block",
+        }),
+      });
+
+      if (res.ok) {
+        await fetchConversations();
+        await fetchMessages(activeConv.id);
+      }
+    } catch (err) {
+      console.error("Error al cambiar bloqueo de contacto:", err);
+    }
+  };
+
   return (
     <div className="flex h-full w-full">
       {/* Columna Izquierda: Lista de Conversaciones */}
@@ -239,13 +269,19 @@ export default function InboxPage() {
                   <p className="text-xs text-slate-500 truncate">{conv.lastMessage || "(Sin contenido de texto)"}</p>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded font-medium ${
-                        conv.status === "bot" ? "bg-purple-100 text-purple-700" : "bg-emerald-100 text-emerald-700"
-                      }`}
-                    >
-                      {conv.status === "bot" ? "IA Respondiendo" : "Operador"}
-                    </span>
+                    {conv.status === "blocked" || conv.isBlocked ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-700 flex items-center gap-1">
+                        <Ban className="w-2.5 h-2.5" /> Bloqueado
+                      </span>
+                    ) : (
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                          conv.status === "bot" ? "bg-purple-100 text-purple-700" : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
+                        {conv.status === "bot" ? "IA Respondiendo" : "Operador"}
+                      </span>
+                    )}
 
                     {conv.metadata?.temperature && (
                       <span
@@ -288,32 +324,56 @@ export default function InboxPage() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-400">
-                    {activeConv.phone} · {activeConv.status === "bot" ? "Modo Autónomo IA" : "Control Manual"}
+                    {activeConv.phone} ·{" "}
+                    {activeConv.status === "blocked" || activeConv.isBlocked
+                      ? "Contacto Bloqueado (Lista Negra)"
+                      : activeConv.status === "bot"
+                      ? "Modo Autónomo IA"
+                      : "Control Manual"}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={toggleHandoff}
+                  onClick={toggleBlockContact}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition ${
-                    activeConv.status === "bot"
-                      ? "bg-amber-500 hover:bg-amber-600 text-white"
-                      : "bg-purple-600 hover:bg-purple-700 text-white"
+                    activeConv.status === "blocked" || activeConv.isBlocked
+                      ? "bg-slate-800 hover:bg-slate-900 text-white"
+                      : "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
                   }`}
+                  title={
+                    activeConv.status === "blocked" || activeConv.isBlocked
+                      ? "Desbloquear número"
+                      : "Bloquear remitente / Spam"
+                  }
                 >
-                  {activeConv.status === "bot" ? (
-                    <>
-                      <User className="w-3.5 h-3.5" />
-                      <span>Tomar Control (Handoff)</span>
-                    </>
-                  ) : (
-                    <>
-                      <Bot className="w-3.5 h-3.5" />
-                      <span>Delegar a IA</span>
-                    </>
-                  )}
+                  <Ban className="w-3.5 h-3.5" />
+                  <span>{activeConv.status === "blocked" || activeConv.isBlocked ? "Desbloquear" : "Bloquear"}</span>
                 </button>
+
+                {!(activeConv.status === "blocked" || activeConv.isBlocked) && (
+                  <button
+                    onClick={toggleHandoff}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition ${
+                      activeConv.status === "bot"
+                        ? "bg-amber-500 hover:bg-amber-600 text-white"
+                        : "bg-purple-600 hover:bg-purple-700 text-white"
+                    }`}
+                  >
+                    {activeConv.status === "bot" ? (
+                      <>
+                        <User className="w-3.5 h-3.5" />
+                        <span>Tomar Control (Handoff)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Bot className="w-3.5 h-3.5" />
+                        <span>Delegar a IA</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -363,6 +423,23 @@ export default function InboxPage() {
               )}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Banner de Advertencia si está Bloqueado */}
+            {(activeConv.status === "blocked" || activeConv.isBlocked) && (
+              <div className="bg-rose-50 border-t border-rose-200 px-6 py-2.5 flex items-center justify-between text-xs text-rose-800">
+                <div className="flex items-center gap-2 font-medium">
+                  <Ban className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <span>Contacto bloqueado en Lista Negra. El bot no procesará mensajes de este número.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleBlockContact}
+                  className="font-bold underline hover:text-rose-950 ml-4 flex-shrink-0"
+                >
+                  Desbloquear
+                </button>
+              </div>
+            )}
 
             {/* Barra de Entrada / Respuesta */}
             <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-slate-200 flex items-center gap-3">

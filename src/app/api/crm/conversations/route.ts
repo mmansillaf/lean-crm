@@ -14,6 +14,7 @@ export async function GET() {
         email: contacts.email,
         channel: conversations.channelType,
         status: conversations.status,
+        isBlocked: contacts.isBlocked,
         metadata: contacts.metadata,
         lastMessage: conversations.lastMessagePreview,
         updatedAt: conversations.updatedAt,

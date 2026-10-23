@@ -120,9 +120,38 @@ export async function processInboundAgentTurn(
     },
   });
 
-  // 5. Verificar regla de Handoff: Si está asignado a humano, la IA no interviene
-  if (conv.status === "human" || conv.status === "closed") {
+  // 5. Verificar regla de Handoff y Bloqueo: Si está asignado a humano, cerrado o bloqueado, la IA no interviene
+  if (conv.status === "human" || conv.status === "closed" || conv.status === "blocked") {
     return { ok: true, handledByHuman: true };
+  }
+
+  // 5b. Disyuntor Anti-Bucle (Circuit Breaker): Pausa automática ante ráfagas de bots sin intervención humana
+  const recentMessages = await db
+    .select({ senderType: messages.senderType, createdAt: messages.createdAt })
+    .from(messages)
+    .where(eq(messages.conversationId, conv.id))
+    .orderBy(sql`${messages.createdAt} DESC`)
+    .limit(8);
+
+  if (recentMessages.length >= 8) {
+    const oldestOfRecent = recentMessages[recentMessages.length - 1].createdAt;
+    const timeSpanMs = Date.now() - new Date(oldestOfRecent).getTime();
+    if (timeSpanMs < 5 * 60 * 1000) {
+      console.warn(`[CIRCUIT_BREAKER_TRIGGERED] Bucle automático detectado en conversación ${conv.id}. Pausando a 'human'.`);
+      await db
+        .update(conversations)
+        .set({ status: "human", updatedAt: new Date() })
+        .where(eq(conversations.id, conv.id));
+
+      crmEvents.emit("inbox_update", {
+        type: "status_changed",
+        conversationId: conv.id,
+        status: "human",
+        reason: "circuit_breaker_anti_loop",
+      });
+
+      return { ok: true, circuitBreaker: true, reason: "anti_loop_triggered" };
+    }
   }
 
   // 6. Consultar base de conocimiento LightRAG con embedding real
