@@ -1,7 +1,26 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Network, Database, CheckCircle2, Loader2, RefreshCw, Trash2, AlertTriangle, FileText } from "lucide-react";
+import {
+  Upload,
+  Network,
+  Database,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  Trash2,
+  AlertTriangle,
+  FileText,
+  MessageSquare,
+  Send,
+  X,
+  Sparkles,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  Bot,
+  Zap,
+} from "lucide-react";
 
 interface KnowledgeSourceItem {
   id: string;
@@ -25,6 +44,30 @@ interface KnowledgeStats {
   totalRelations: number;
 }
 
+interface ChatHit {
+  entity: string;
+  type: string;
+  description: string;
+  score: number;
+}
+
+interface ChatRelation {
+  from: string;
+  path: string;
+  to: string;
+  detail: string;
+}
+
+interface TestChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  hits?: ChatHit[];
+  relations?: ChatRelation[];
+  latencyMs?: number;
+  timestamp: string;
+}
+
 export default function KnowledgePage() {
   const [sources, setSources] = useState<KnowledgeSourceItem[]>([]);
   const [relations, setRelations] = useState<KnowledgeRelationItem[]>([]);
@@ -33,6 +76,23 @@ export default function KnowledgePage() {
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados del Chat Buscador / Verificador (Drawer)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [chatMode, setChatMode] = useState<"agent" | "search">("agent");
+  const [chatInput, setChatInput] = useState("");
+  const [chatSending, setChatSending] = useState(false);
+  const [chatMessages, setChatMessages] = useState<TestChatMessage[]>([
+    {
+      id: "initial_welcome",
+      role: "assistant",
+      content:
+        "👋 ¡Hola! Soy el simulador del motor RAG de Algoritmo Jurídico. Escribe una pregunta para comprobar qué información responde el bot y qué nodos semánticos recupera del grafo.",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    },
+  ]);
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const fetchKnowledge = async () => {
     try {
@@ -51,6 +111,12 @@ export default function KnowledgePage() {
   useEffect(() => {
     fetchKnowledge();
   }, []);
+
+  useEffect(() => {
+    if (isDrawerOpen) {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, isDrawerOpen]);
 
   // Subir e ingestar documento (PDF o Texto)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,8 +200,83 @@ export default function KnowledgePage() {
     }
   };
 
+  // Enviar consulta de prueba al Chat Verificador
+  const handleSendTestQuery = async (queryText: string) => {
+    const q = queryText.trim();
+    if (!q || chatSending) return;
+
+    const userMsg: TestChatMessage = {
+      id: `user_${Date.now()}`,
+      role: "user",
+      content: q,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatInput("");
+    setChatSending(true);
+
+    try {
+      const res = await fetch("/api/crm/knowledge/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q, mode: chatMode }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const assistantMsg: TestChatMessage = {
+          id: `asst_${Date.now()}`,
+          role: "assistant",
+          content:
+            chatMode === "search"
+              ? data.hits?.length > 0
+                ? `🔍 Se encontraron ${data.hits.length} entidades coincidentes en el grafo vectorial.`
+                : "No se encontraron entidades coincidentes para esta consulta con el umbral actual."
+              : data.answer || "(Sin respuesta generada)",
+          hits: data.hits || [],
+          relations: data.relations || [],
+          latencyMs: data.latencyMs,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+
+        setChatMessages((prev) => [...prev, assistantMsg]);
+        // Expandir detalles automáticamente en modo búsqueda
+        if (chatMode === "search") {
+          setExpandedDetails((prev) => ({ ...prev, [assistantMsg.id]: true }));
+        }
+      } else {
+        const errJson = await res.json();
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: `err_${Date.now()}`,
+            role: "assistant",
+            content: `❌ Error al consultar motor RAG: ${errJson.error || "Fallo interno"}`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error("Error en test query:", err);
+    } finally {
+      setChatSending(false);
+    }
+  };
+
+  const toggleDetails = (msgId: string) => {
+    setExpandedDetails((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
+  };
+
+  const sampleQuestions = [
+    "¿Qué planes y suscripciones tienen?",
+    "Sentencias de amparo del Tribunal Constitucional",
+    "Quiero pagar la suscripción de 6 meses",
+    "¿Qué jurisprudencia tienen de SUNAT?",
+  ];
+
   return (
-    <div className="h-full flex flex-col p-6 space-y-6">
+    <div className="h-full flex flex-col p-6 space-y-6 relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -144,6 +285,15 @@ export default function KnowledgePage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Botón para Abrir el Chat Buscador / Verificador */}
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xs transition"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Probar Chat RAG</span>
+          </button>
+
           {/* Input oculto para subida de archivos */}
           <input
             type="file"
@@ -308,6 +458,214 @@ export default function KnowledgePage() {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* DRAWER / SLIDE-OVER: Chat Buscador & Verificador RAG */}
+      {isDrawerOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+          {/* Backdrop oscurecedor */}
+          <div
+            className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsDrawerOpen(false)}
+          />
+
+          {/* Panel Lateral */}
+          <div className="relative w-full max-w-lg bg-white shadow-2xl flex flex-col h-full border-l border-slate-200 z-10 animate-in slide-in-from-right duration-200">
+            {/* Header del Drawer */}
+            <div className="p-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-purple-100 text-purple-700 rounded-lg">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">Verificador RAG en Vivo</h3>
+                  <p className="text-[11px] text-slate-500">Prueba respuestas y audita nodos sin alterar el CRM.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    setChatMessages([
+                      {
+                        id: `reset_${Date.now()}`,
+                        role: "assistant",
+                        content: "Historial limpiado. Puedes ingresar una nueva consulta de prueba.",
+                        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                      },
+                    ])
+                  }
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition"
+                  title="Limpiar chat de prueba"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg transition"
+                  title="Cerrar panel"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Selector de Modo: Agente vs Búsqueda Pura */}
+            <div className="px-4 py-2.5 bg-slate-100/60 border-b border-slate-200 flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-600">Modo de Verificación:</span>
+              <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200">
+                <button
+                  onClick={() => setChatMode("agent")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold transition ${
+                    chatMode === "agent" ? "bg-purple-600 text-white" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <Bot className="w-3 h-3" />
+                  <span>Agente Ventas</span>
+                </button>
+                <button
+                  onClick={() => setChatMode("search")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold transition ${
+                    chatMode === "search" ? "bg-blue-600 text-white" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <Search className="w-3 h-3" />
+                  <span>Búsqueda Pura</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Lista de Mensajes del Chat */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50/50">
+              {chatMessages.map((msg) => {
+                const isUser = msg.role === "user";
+                const isExpanded = expandedDetails[msg.id];
+                const hasHits = msg.hits && msg.hits.length > 0;
+
+                return (
+                  <div key={msg.id} className={`flex flex-col ${isUser ? "items-end ml-auto" : "items-start"} max-w-[92%]`}>
+                    <div
+                      className={`p-3.5 rounded-2xl text-xs whitespace-pre-wrap leading-relaxed shadow-xs ${
+                        isUser
+                          ? "bg-purple-600 text-white rounded-tr-xs"
+                          : "bg-white border border-slate-200 text-slate-800 rounded-tl-xs"
+                      }`}
+                    >
+                      {!isUser && (
+                        <div className="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-slate-100 text-[10px] text-purple-700 font-semibold">
+                          <span className="flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            {chatMode === "agent" ? "Respuesta Agente IA" : "Motor LightRAG"}
+                          </span>
+                          {msg.latencyMs && (
+                            <span className="flex items-center gap-0.5 text-slate-400 font-mono">
+                              <Zap className="w-2.5 h-2.5 text-amber-500" />
+                              {(msg.latencyMs / 1000).toFixed(2)}s
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {msg.content}
+
+                      {/* Botón desplegable para inspeccionar nodos recuperados */}
+                      {!isUser && hasHits && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-100">
+                          <button
+                            type="button"
+                            onClick={() => toggleDetails(msg.id)}
+                            className="flex items-center gap-1 text-[11px] font-semibold text-purple-700 hover:text-purple-800 transition"
+                          >
+                            {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                            <span>{msg.hits?.length} nodos recuperados del grafo</span>
+                          </button>
+
+                          {isExpanded && (
+                            <div className="mt-2 space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[11px]">
+                              {msg.hits?.map((h, i) => (
+                                <div key={i} className="p-2 bg-white rounded-lg border border-slate-100 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-slate-800">{h.entity}</span>
+                                    <span className="text-[9px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded font-mono font-semibold">
+                                      {h.type}
+                                    </span>
+                                  </div>
+                                  <p className="text-slate-500 text-[10px] leading-tight">{h.description}</p>
+                                </div>
+                              ))}
+
+                              {msg.relations && msg.relations.length > 0 && (
+                                <div className="pt-1.5 border-t border-slate-200 space-y-1">
+                                  <span className="font-semibold text-slate-700 text-[10px] block">Relaciones enlazadas:</span>
+                                  {msg.relations.map((rel, ri) => (
+                                    <div key={ri} className="text-[10px] text-slate-600 bg-white p-1.5 rounded border border-slate-100">
+                                      <span className="font-bold">{rel.from}</span>
+                                      <span className="text-purple-600 font-mono mx-1 font-semibold">──[{rel.path}]──►</span>
+                                      <span className="font-bold text-emerald-700">{rel.to}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.timestamp}</span>
+                  </div>
+                );
+              })}
+              {chatSending && (
+                <div className="flex items-center gap-2 p-3 bg-white border border-slate-200 rounded-2xl w-fit text-xs text-slate-500 shadow-xs">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                  <span>Consultando grafo y generando respuesta...</span>
+                </div>
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+
+            {/* Preguntas Sugeridas de Prueba Rápida */}
+            <div className="p-3 bg-white border-t border-slate-200 space-y-1.5">
+              <span className="text-[10px] text-slate-400 font-semibold block">Preguntas de prueba sugeridas:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {sampleQuestions.map((sq, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSendTestQuery(sq)}
+                    className="text-[10px] bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-700 px-2 py-1 rounded-lg border border-slate-200 transition text-left"
+                  >
+                    {sq}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Input y Botón de Envío */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendTestQuery(chatInput);
+              }}
+              className="p-3 bg-white border-t border-slate-200 flex items-center gap-2"
+            >
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={chatMode === "agent" ? "Haz una pregunta para probar el agente..." : "Buscar nodos en el grafo..."}
+                className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition"
+              />
+              <button
+                type="submit"
+                disabled={chatSending || !chatInput.trim()}
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white p-2 rounded-xl shadow-xs transition"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
           </div>
         </div>
       )}
