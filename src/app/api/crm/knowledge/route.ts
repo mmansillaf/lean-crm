@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       .innerJoin(sql`knowledge_entities as src_e`, sql`src_e.id = ${knowledgeRelations.sourceEntityId}`)
       .innerJoin(sql`knowledge_entities as tgt_e`, sql`tgt_e.id = ${knowledgeRelations.targetEntityId}`)
       .where(eq(knowledgeRelations.organizationId, orgId))
-      .limit(20);
+      .limit(40);
 
     // 3. Conteo total de entidades y relaciones de la organización
     const totalEntities = await db

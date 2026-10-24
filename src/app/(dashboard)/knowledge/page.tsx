@@ -20,7 +20,88 @@ import {
   Search,
   Bot,
   Zap,
+  Layers,
+  Info,
+  Maximize2,
 } from "lucide-react";
+
+type NodeCategory = "hub" | "product" | "institution" | "norm" | "service";
+
+function categorizeNode(name: string): NodeCategory {
+  const n = name.toLowerCase();
+  if (n.includes("algoritmo jurídico") || n.includes("algoritmo juridico")) return "hub";
+  if (
+    n.includes("tribunal") ||
+    n.includes("tc") ||
+    n.includes("sunat") ||
+    n.includes("judicial") ||
+    n.includes("indecopi") ||
+    n.includes("ministerio") ||
+    n.includes("corte")
+  ) {
+    return "institution";
+  }
+  if (
+    n.includes("ley") ||
+    n.includes("lir") ||
+    n.includes("igv") ||
+    n.includes("código") ||
+    n.includes("codigo") ||
+    n.includes("constitución") ||
+    n.includes("decreto") ||
+    n.includes("jurisprudencia") ||
+    n.includes("amparo") ||
+    n.includes("precedente")
+  ) {
+    return "norm";
+  }
+  if (
+    n.includes("buscador") ||
+    n.includes("plataforma") ||
+    n.includes("suscripción") ||
+    n.includes("suscripcion") ||
+    n.includes("tarifa") ||
+    n.includes("plan") ||
+    n.includes("izipay") ||
+    n.includes("checkout")
+  ) {
+    return "product";
+  }
+  return "service";
+}
+
+const CATEGORY_CONFIG: Record<NodeCategory, { label: string; stroke: string; badge: string; border: string }> = {
+  hub: {
+    label: "Entidad Central",
+    stroke: "#3b82f6",
+    badge: "bg-blue-600 text-white",
+    border: "border-blue-400 shadow-blue-500/20",
+  },
+  product: {
+    label: "Producto / Portal",
+    stroke: "#38bdf8",
+    badge: "bg-sky-500/20 text-sky-300 border border-sky-500/30",
+    border: "border-sky-500 shadow-sky-500/20",
+  },
+  institution: {
+    label: "Organismo Oficial",
+    stroke: "#10b981",
+    badge: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30",
+    border: "border-emerald-500 shadow-emerald-500/20",
+  },
+  norm: {
+    label: "Normativa / Precedente",
+    stroke: "#f43f5e",
+    badge: "bg-rose-500/20 text-rose-300 border border-rose-500/30",
+    border: "border-rose-500 shadow-rose-500/20",
+  },
+  service: {
+    label: "Servicio / Asesoría",
+    stroke: "#a855f7",
+    badge: "bg-purple-500/20 text-purple-300 border border-purple-500/30",
+    border: "border-purple-500 shadow-purple-500/20",
+  },
+};
 
 interface KnowledgeSourceItem {
   id: string;
@@ -93,6 +174,11 @@ export default function KnowledgePage() {
   ]);
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // Estados de visualización del Grafo 2D
+  const [graphTab, setGraphTab] = useState<"canvas" | "table">("canvas");
+  const [selectedNodeName, setSelectedNodeName] = useState<string | null>(null);
+  const [hoveredNodeName, setHoveredNodeName] = useState<string | null>(null);
 
   const fetchKnowledge = async () => {
     try {
@@ -417,12 +503,43 @@ export default function KnowledgePage() {
           </div>
 
           {/* Columna Derecha: Explorador del Grafo Relacional */}
-          <div className="col-span-2 bg-white rounded-2xl border border-slate-200 p-5 flex flex-col space-y-4">
+          <div className="col-span-2 bg-white rounded-2xl border border-slate-200 p-5 flex flex-col space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Network className="w-4 h-4 text-purple-600" />
-                <h2 className="font-bold text-sm text-slate-800">Grafo de Entidades y Conexiones Semánticas</h2>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Network className="w-4 h-4 text-purple-600" />
+                  <h2 className="font-bold text-sm text-slate-800">Grafo Semántico LightRAG</h2>
+                </div>
+
+                {/* Tabs de Modo de Visualización */}
+                <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setGraphTab("canvas")}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-semibold transition ${
+                      graphTab === "canvas"
+                        ? "bg-white text-blue-600 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <Layers className="w-3 h-3" />
+                    <span>Lienzo 2D</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGraphTab("table")}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-semibold transition ${
+                      graphTab === "table"
+                        ? "bg-white text-blue-600 shadow-2xs"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <Database className="w-3 h-3" />
+                    <span>Lista ({relations.length})</span>
+                  </button>
+                </div>
               </div>
+
               <div className="flex items-center gap-2">
                 <span className="text-xs bg-purple-50 text-purple-700 font-semibold px-2 py-0.5 rounded-full">
                   {stats.totalEntities} Nodos
@@ -433,31 +550,356 @@ export default function KnowledgePage() {
               </div>
             </div>
 
-            {/* Visualizador de Aristas */}
-            <div className="flex-1 bg-slate-50 rounded-xl border border-slate-100 p-4 overflow-y-auto space-y-2.5">
-              {relations.length === 0 ? (
-                <div className="text-center py-12 text-xs text-slate-400">Sin relaciones en el grafo</div>
-              ) : (
-                relations.map((edge) => (
-                  <div key={edge.id} className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between shadow-xs">
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-xs text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
-                        {edge.sourceName}
-                      </span>
-                      <span className="text-[11px] text-purple-600 font-mono font-semibold bg-purple-50 px-2 py-0.5 rounded">
-                        ──[{edge.relationType}]──►
-                      </span>
-                      <span className="font-semibold text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
-                        {edge.targetName}
+            {/* VISTA 1: LIENZO 2D INTERACTIVO */}
+            {graphTab === "canvas" ? (
+              <div className="flex-1 flex flex-col space-y-2">
+                {/* Barra de Leyenda de Categorías */}
+                <div className="flex items-center justify-between text-xs px-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Leyenda:</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Hub Central</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">Productos</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Organismos</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">Normativa</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">Servicios IA</span>
+                  </div>
+
+                  <span className="text-[10px] text-slate-400">
+                    Haz clic en un nodo para aislar sus relaciones
+                  </span>
+                </div>
+
+                {/* Lienzo SVG / Nodos HTML */}
+                <div className="w-full flex-1 min-h-[460px] bg-slate-950 rounded-2xl relative overflow-hidden flex items-center justify-center border border-slate-800 shadow-inner select-none">
+                  {/* Rejilla radial de fondo */}
+                  <div
+                    className="absolute inset-0 opacity-15 pointer-events-none"
+                    style={{
+                      backgroundImage: "radial-gradient(#38bdf8 1px, transparent 1px)",
+                      backgroundSize: "24px 24px",
+                    }}
+                  />
+
+                  {relations.length === 0 ? (
+                    <div className="text-center text-slate-400 text-xs py-20 z-10 space-y-2">
+                      <Network className="w-8 h-8 text-slate-600 mx-auto" />
+                      <p>Sin nodos suficientes para renderizar el lienzo 2D.</p>
+                      <p className="text-[11px] text-slate-500">Sube un documento para indexar entidades y relaciones.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Capa SVG para Conexiones y Aristas */}
+                      <svg
+                        viewBox={`0 0 840 480`}
+                        className="w-full h-full absolute inset-0 pointer-events-none"
+                      >
+                        <defs>
+                          <marker
+                            id="arrow-default"
+                            viewBox="0 0 10 10"
+                            refX="24"
+                            refY="5"
+                            markerWidth="6"
+                            markerHeight="6"
+                            orient="auto-start-reverse"
+                          >
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
+                          </marker>
+                          <marker
+                            id="arrow-active"
+                            viewBox="0 0 10 10"
+                            refX="24"
+                            refY="5"
+                            markerWidth="6"
+                            markerHeight="6"
+                            orient="auto-start-reverse"
+                          >
+                            <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+                          </marker>
+                        </defs>
+
+                        {/* Aristas del Grafo */}
+                        {(() => {
+                          // Extraer nodos y calcular layout
+                          const nodeDegrees: Record<string, number> = {};
+                          relations.forEach((rel) => {
+                            nodeDegrees[rel.sourceName] = (nodeDegrees[rel.sourceName] || 0) + 1;
+                            nodeDegrees[rel.targetName] = (nodeDegrees[rel.targetName] || 0) + 1;
+                          });
+
+                          const uniqueNames = Object.keys(nodeDegrees).sort(
+                            (a, b) => (nodeDegrees[b] || 0) - (nodeDegrees[a] || 0)
+                          );
+                          const topNodes = uniqueNames.slice(0, 14);
+
+                          const hub =
+                            topNodes.find((n) => categorizeNode(n) === "hub") ||
+                            topNodes[0] ||
+                            "Algoritmo Jurídico SAC";
+
+                          const others = topNodes.filter((n) => n !== hub);
+                          const positions: Record<string, { x: number; y: number; category: NodeCategory; degree: number }> = {};
+
+                          positions[hub] = {
+                            x: 420,
+                            y: 240,
+                            category: categorizeNode(hub),
+                            degree: nodeDegrees[hub] || 1,
+                          };
+
+                          others.forEach((name, idx) => {
+                            const total = Math.max(others.length, 1);
+                            const angle = (idx / total) * 2 * Math.PI - Math.PI / 2;
+                            const radius = idx % 2 === 0 ? 175 : 225;
+                            const rawX = 420 + radius * Math.cos(angle) * 1.35;
+                            const rawY = 240 + radius * Math.sin(angle) * 0.92;
+                            positions[name] = {
+                              x: Math.max(90, Math.min(750, Math.round(rawX))),
+                              y: Math.max(50, Math.min(430, Math.round(rawY))),
+                              category: categorizeNode(name),
+                              degree: nodeDegrees[name] || 1,
+                            };
+                          });
+
+                          const visibleEdges = relations.filter(
+                            (r) => positions[r.sourceName] && positions[r.targetName]
+                          );
+
+                          return visibleEdges.map((edge, idx) => {
+                            const src = positions[edge.sourceName];
+                            const tgt = positions[edge.targetName];
+                            if (!src || !tgt) return null;
+
+                            const isConnected =
+                              (selectedNodeName && (edge.sourceName === selectedNodeName || edge.targetName === selectedNodeName)) ||
+                              (hoveredNodeName && (edge.sourceName === hoveredNodeName || edge.targetName === hoveredNodeName));
+
+                            const isDimmed = (selectedNodeName || hoveredNodeName) && !isConnected;
+
+                            const strokeColor = isConnected
+                              ? "#38bdf8"
+                              : CATEGORY_CONFIG[src.category]?.stroke || "#475569";
+
+                            const midX = (src.x + tgt.x) / 2;
+                            const midY = (src.y + tgt.y) / 2;
+
+                            return (
+                              <g key={edge.id || idx}>
+                                <line
+                                  x1={src.x}
+                                  y1={src.y}
+                                  x2={tgt.x}
+                                  y2={tgt.y}
+                                  stroke={strokeColor}
+                                  strokeWidth={isConnected ? 2.5 : 1.5}
+                                  strokeDasharray={isConnected ? "none" : "3,3"}
+                                  opacity={isDimmed ? 0.12 : isConnected ? 0.95 : 0.45}
+                                  markerEnd={isConnected ? "url(#arrow-active)" : "url(#arrow-default)"}
+                                  className="transition-all duration-200"
+                                />
+                                {isConnected && (
+                                  <text
+                                    x={midX}
+                                    y={midY - 4}
+                                    fill="#f1f5f9"
+                                    fontSize="8"
+                                    fontWeight="bold"
+                                    textAnchor="middle"
+                                    className="select-none font-mono"
+                                  >
+                                    {edge.relationType}
+                                  </text>
+                                )}
+                              </g>
+                            );
+                          });
+                        })()}
+                      </svg>
+
+                      {/* Nodos Interactivos (Tarjetas HTML sobre el lienzo) */}
+                      {(() => {
+                        const nodeDegrees: Record<string, number> = {};
+                        relations.forEach((rel) => {
+                          nodeDegrees[rel.sourceName] = (nodeDegrees[rel.sourceName] || 0) + 1;
+                          nodeDegrees[rel.targetName] = (nodeDegrees[rel.targetName] || 0) + 1;
+                        });
+
+                        const uniqueNames = Object.keys(nodeDegrees).sort(
+                          (a, b) => (nodeDegrees[b] || 0) - (nodeDegrees[a] || 0)
+                        );
+                        const topNodes = uniqueNames.slice(0, 14);
+
+                        const hub =
+                          topNodes.find((n) => categorizeNode(n) === "hub") ||
+                          topNodes[0] ||
+                          "Algoritmo Jurídico SAC";
+
+                        const others = topNodes.filter((n) => n !== hub);
+                        const positions: Record<string, { x: number; y: number; category: NodeCategory; degree: number }> = {};
+
+                        positions[hub] = {
+                          x: 420,
+                          y: 240,
+                          category: categorizeNode(hub),
+                          degree: nodeDegrees[hub] || 1,
+                        };
+
+                        others.forEach((name, idx) => {
+                          const total = Math.max(others.length, 1);
+                          const angle = (idx / total) * 2 * Math.PI - Math.PI / 2;
+                          const radius = idx % 2 === 0 ? 175 : 225;
+                          const rawX = 420 + radius * Math.cos(angle) * 1.35;
+                          const rawY = 240 + radius * Math.sin(angle) * 0.92;
+                          positions[name] = {
+                            x: Math.max(90, Math.min(750, Math.round(rawX))),
+                            y: Math.max(50, Math.min(430, Math.round(rawY))),
+                            category: categorizeNode(name),
+                            degree: nodeDegrees[name] || 1,
+                          };
+                        });
+
+                        return topNodes.map((nodeName) => {
+                          const pos = positions[nodeName];
+                          if (!pos) return null;
+
+                          const cfg = CATEGORY_CONFIG[pos.category];
+                          const isSelected = selectedNodeName === nodeName;
+                          const isHovered = hoveredNodeName === nodeName;
+                          const isHub = pos.category === "hub";
+
+                          return (
+                            <div
+                              key={nodeName}
+                              style={{ left: `${(pos.x / 840) * 100}%`, top: `${(pos.y / 480) * 100}%` }}
+                              onClick={() => setSelectedNodeName(isSelected ? null : nodeName)}
+                              onMouseEnter={() => setHoveredNodeName(nodeName)}
+                              onMouseLeave={() => setHoveredNodeName(null)}
+                              className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 z-10 ${
+                                isHub ? "w-44" : "w-36"
+                              } ${
+                                isSelected
+                                  ? "scale-105 ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-950 z-20"
+                                  : isHovered
+                                  ? "scale-105 z-20"
+                                  : ""
+                              }`}
+                            >
+                              <div
+                                className={`p-2 rounded-xl border backdrop-blur-md text-center transition shadow-lg ${
+                                  isHub
+                                    ? "bg-blue-600/90 border-blue-400 text-white shadow-blue-500/20"
+                                    : `bg-slate-900/90 ${cfg.border} text-slate-100`
+                                }`}
+                              >
+                                <span
+                                  className={`text-[8px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded font-bold block mb-1 truncate ${
+                                    isHub ? "bg-blue-800 text-blue-200" : cfg.badge
+                                  }`}
+                                >
+                                  {cfg.label}
+                                </span>
+                                <span className="font-bold text-xs block leading-tight truncate" title={nodeName}>
+                                  {nodeName}
+                                </span>
+                                <span className="text-[9px] text-slate-400 block mt-0.5">
+                                  {pos.degree} {pos.degree === 1 ? "conexión" : "conexiones"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+
+                      {/* Inspector de Nodo Seleccionado */}
+                      {selectedNodeName && (
+                        <div className="absolute bottom-3 left-4 right-4 bg-slate-900/95 border border-slate-700/80 rounded-xl p-3 text-white backdrop-blur-md shadow-2xl z-30 animate-in slide-in-from-bottom-2 duration-150">
+                          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-white">{selectedNodeName}</span>
+                              <span
+                                className={`text-[9px] px-2 py-0.5 rounded font-bold ${
+                                  CATEGORY_CONFIG[categorizeNode(selectedNodeName)]?.badge
+                                }`}
+                              >
+                                {CATEGORY_CONFIG[categorizeNode(selectedNodeName)]?.label}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedNodeName(null)}
+                              className="text-slate-400 hover:text-white p-1 rounded transition"
+                              title="Cerrar inspector"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="max-h-24 overflow-y-auto space-y-1.5 text-xs pr-1">
+                            {relations.filter(
+                              (r) => r.sourceName === selectedNodeName || r.targetName === selectedNodeName
+                            ).length === 0 ? (
+                              <p className="text-[11px] text-slate-400">Sin conexiones en la muestra activa.</p>
+                            ) : (
+                              relations
+                                .filter((r) => r.sourceName === selectedNodeName || r.targetName === selectedNodeName)
+                                .map((rel) => (
+                                  <div
+                                    key={rel.id}
+                                    className="flex items-center justify-between bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/50"
+                                  >
+                                    <div className="flex items-center gap-2 truncate">
+                                      <span className="font-bold text-slate-200 text-[11px]">{rel.sourceName}</span>
+                                      <span className="text-purple-400 font-mono text-[10px]">
+                                        ──[{rel.relationType}]──►
+                                      </span>
+                                      <span className="font-semibold text-emerald-300 text-[11px]">{rel.targetName}</span>
+                                    </div>
+                                    <span
+                                      className="text-[10px] text-slate-400 truncate max-w-xs ml-3"
+                                      title={rel.description}
+                                    >
+                                      {rel.description}
+                                    </span>
+                                  </div>
+                                ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* VISTA 2: LISTA DETALLADA DE RELACIONES */
+              <div className="flex-1 bg-slate-50 rounded-xl border border-slate-100 p-4 overflow-y-auto space-y-2.5">
+                {relations.length === 0 ? (
+                  <div className="text-center py-12 text-xs text-slate-400">Sin relaciones en el grafo</div>
+                ) : (
+                  relations.map((edge) => (
+                    <div
+                      key={edge.id}
+                      className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between shadow-xs hover:border-blue-300 transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-xs text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">
+                          {edge.sourceName}
+                        </span>
+                        <span className="text-[11px] text-purple-600 font-mono font-semibold bg-purple-50 px-2 py-0.5 rounded">
+                          ──[{edge.relationType}]──►
+                        </span>
+                        <span className="font-semibold text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                          {edge.targetName}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono truncate max-w-[200px]" title={edge.description}>
+                        {edge.description}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-mono truncate max-w-[200px]" title={edge.description}>
-                      {edge.description}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
