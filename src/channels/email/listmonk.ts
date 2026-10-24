@@ -70,6 +70,37 @@ export class ListmonkClient {
       return [];
     }
   }
+
+  /**
+   * Enviar correo transaccional vía Listmonk
+   */
+  async sendTransactional(
+    subscriberEmail: string,
+    templateId: number,
+    data: Record<string, unknown> = {}
+  ): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/tx`, {
+        method: "POST",
+        headers: {
+          Authorization: this.authHeader,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subscriber_email: subscriberEmail,
+          template_id: templateId,
+          data,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        return { ok: false, error: JSON.stringify(json) };
+      }
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: err.message };
+    }
+  }
 }
 
 export const listmonk = new ListmonkClient();

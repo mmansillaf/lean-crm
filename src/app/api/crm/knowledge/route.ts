@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { knowledgeSources, knowledgeEntities, knowledgeRelations } from "@/db/schema";
+import { knowledgeSources, knowledgeEntities, knowledgeRelations, organizations } from "@/db/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 import { extractGraphFromText, ingestKnowledgeDocument, type ExtractedEntity, type ExtractedRelation } from "@/ai/lightrag/extract";
 import { getEmbedding } from "@/ai/embeddings";
 
+async function resolveOrgId(req: NextRequest): Promise<string> {
+  const param = req.nextUrl.searchParams.get("organizationId") || req.headers.get("x-organization-id");
+  if (param) return param;
+  const defaultOrg = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, "algoritmo-juridico"))
+    .limit(1)
+    .then((r) => r[0]);
+  return defaultOrg?.id || "211bd937-74bf-4280-b27a-ea08cd62bb8b";
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const orgId = "211bd937-74bf-4280-b27a-ea08cd62bb8b"; // Algoritmo Jurídico SAC
+    const orgId = await resolveOrgId(req);
 
     // 1. Obtener fuentes con conteo de entidades de la organización
     const sources = await db
@@ -61,13 +73,14 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.error("[KNOWLEDGE_GET_ERR]", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
-    const orgId = "211bd937-74bf-4280-b27a-ea08cd62bb8b"; // Algoritmo Jurídico SAC
+    const orgId = await resolveOrgId(req);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     const reset = searchParams.get("reset") === "true";
@@ -99,7 +112,7 @@ export async function DELETE(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const orgId = "211bd937-74bf-4280-b27a-ea08cd62bb8b"; // Algoritmo Jurídico SAC
+    const orgId = await resolveOrgId(req);
     const contentType = req.headers.get("content-type") || "";
 
     let documentName = "";
@@ -202,4 +215,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

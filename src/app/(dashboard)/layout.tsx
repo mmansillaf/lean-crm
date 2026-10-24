@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
-import { MessageSquare, Columns3, BrainCircuit, Mail, Settings, Users, ShieldCheck } from "lucide-react";
+import { MessageSquare, Columns3, BrainCircuit, Mail, Settings, ShieldCheck } from "lucide-react";
+import { UserNav } from "@/components/UserNav";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -63,13 +64,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </nav>
         </div>
 
-        {/* Footer Sidebar */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>Postgres + pgvector</span>
+        {/* Footer Sidebar con Sesión de Usuario */}
+        <div className="p-4 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Postgres + pgvector</span>
+            </div>
+            <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded">v0.1.0</span>
           </div>
-          <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded">v0.1.0</span>
+
+          <UserNav />
         </div>
       </aside>
 

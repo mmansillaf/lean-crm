@@ -82,6 +82,8 @@ export function ensureWorkerStarted() {
 const MAX_CONCURRENT_TURNS = 5;
 
 async function processQueueLoop() {
+  let idleDelay = 250;
+
   while (true) {
     try {
       if ((globalForQueue.activeWorkers || 0) >= MAX_CONCURRENT_TURNS) {
@@ -90,13 +92,17 @@ async function processQueueLoop() {
         continue;
       }
 
-      // Pop no bloqueante del inicio de la cola
+      // Pop del inicio de la cola
       const rawJob = await redis.lpop(QUEUE_KEY);
       if (!rawJob) {
-        // Cola vacía, esperar 250ms antes de volver a consultar
-        await new Promise((r) => setTimeout(r, 250));
+        // Cola vacía: backoff exponencial adaptativo (250ms -> 2000ms max) para evitar saturar Redis
+        await new Promise((r) => setTimeout(r, idleDelay));
+        idleDelay = Math.min(Math.round(idleDelay * 1.5), 2000);
         continue;
       }
+
+      // Al recibir un trabajo, restablecer la velocidad de respuesta inmediata
+      idleDelay = 250;
 
       const job: QueuedWhatsAppJob = JSON.parse(rawJob);
       if (job.message) {

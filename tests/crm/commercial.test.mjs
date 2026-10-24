@@ -20,21 +20,21 @@ test("TDD Suite: Capacidades Comerciales (Round-Robin, Pagos & Calendario)", asy
       amountCents: 50000,
       currency: "USD",
       contactPhone: "+51999888777",
-      organizationSlug: "clinica-dental",
+      organizationSlug: "estudio-juridico",
       provider: "stripe",
     });
-    assert.ok(linkStripe.startsWith("https://buy.stripe.com/clinica-dental-"));
+    assert.ok(linkStripe.startsWith("https://buy.stripe.com/estudio-juridico-"));
     assert.ok(linkStripe.includes("amount=50000"));
 
     const linkMP = generatePaymentLink({
-      title: "Consulta Dental",
+      title: "Suscripción Buscador TC",
       amountCents: 15000,
       currency: "PEN",
       contactPhone: "+51999888777",
-      organizationSlug: "clinica-dental",
+      organizationSlug: "estudio-juridico",
       provider: "mercadopago",
     });
-    assert.ok(linkMP.startsWith("https://mpago.la/pay/clinica-dental-"));
+    assert.ok(linkMP.startsWith("https://mpago.la/pay/estudio-juridico-"));
     assert.ok(linkMP.includes("amount=150.00"));
   });
 

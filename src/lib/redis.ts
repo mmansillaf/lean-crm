@@ -30,6 +30,11 @@ export const redisSubscriber =
     },
   });
 
+// Auto-conectar clientes si están en estado de espera
+if (redis.status === "wait") {
+  redis.connect().catch(() => {});
+}
+
 if (process.env.NODE_ENV !== "production") {
   globalForRedis.redisClient = redis;
   globalForRedis.redisSub = redisSubscriber;

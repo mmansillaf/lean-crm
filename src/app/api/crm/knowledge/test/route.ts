@@ -3,16 +3,31 @@ import { getEmbedding } from "@/ai/embeddings";
 import { searchLightRag } from "@/ai/lightrag/search";
 import { generateText } from "ai";
 import { openai, createOpenAI } from "@ai-sdk/openai";
+import { db } from "@/db";
+import { organizations } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+async function resolveOrgId(req: NextRequest): Promise<string> {
+  const param = req.nextUrl.searchParams.get("organizationId") || req.headers.get("x-organization-id");
+  if (param) return param;
+  const defaultOrg = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, "algoritmo-juridico"))
+    .limit(1)
+    .then((r) => r[0]);
+  return defaultOrg?.id || "211bd937-74bf-4280-b27a-ea08cd62bb8b";
+}
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   try {
-    const { query, mode = "agent" } = await req.json();
+    const { query, mode = "agent", organizationId } = await req.json();
     if (!query || typeof query !== "string" || !query.trim()) {
       return NextResponse.json({ error: "query is required" }, { status: 400 });
     }
 
-    const orgId = "211bd937-74bf-4280-b27a-ea08cd62bb8b"; // Algoritmo Jurídico SAC
+    const orgId = organizationId || (await resolveOrgId(req));
 
     // 1. Vectorizar la consulta
     const queryEmbedding = await getEmbedding(query);

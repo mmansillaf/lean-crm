@@ -17,7 +17,7 @@ export async function transcribeAudio(
   if (!apiKey) {
     return {
       success: true,
-      text: "[Transcripción simulada: Hola, quisiera consultar sobre sus servicios de ortodoncia]",
+      text: "[Transcripción simulada: Estimados, quisiera consultar sobre la suscripción al Buscador de Procesos Constitucionales]",
     };
   }
 

@@ -6,19 +6,19 @@ import { ListmonkClient } from "../../src/channels/email/listmonk.ts";
 test("TDD Suite: Flujos de Email y Listmonk", async (t) => {
   await t.test("Parseo de webhook Inbound Email con remitente compuesto", () => {
     const rawPayload = {
-      from: '"Dra. Valentina Mendoza" <valentina@clinica.pe>',
+      from: '"Dra. Valentina Mendoza" <valentina@estudiojuridico.pe>',
       to: "ventas@misaas.com",
-      subject: "Consulta sobre planes para clínica",
+      subject: "Consulta sobre planes para estudio jurídico",
       text: "Hola, quisiéramos saber el costo de 5 usuarios.",
       message_id: "resend_msg_abc123456",
     };
 
     const parsed = emailAdapter.parseInboundWebhook(rawPayload);
     assert.ok(parsed, "El email entrante no fue parseado");
-    assert.equal(parsed.from, "valentina@clinica.pe");
+    assert.equal(parsed.from, "valentina@estudiojuridico.pe");
     assert.equal(parsed.fromName, "Dra. Valentina Mendoza");
     assert.equal(parsed.accountEmail, "ventas@misaas.com");
-    assert.equal(parsed.subject, "Consulta sobre planes para clínica");
+    assert.equal(parsed.subject, "Consulta sobre planes para estudio jurídico");
     assert.equal(parsed.messageId, "resend_msg_abc123456");
   });
 

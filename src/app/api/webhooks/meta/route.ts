@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { metaAdapter } from "@/channels/meta/adapter";
-import { processInboundAgentTurn } from "@/ai/agent/turn";
+import { enqueueWhatsAppTurn } from "@/crm/queue";
 import { db } from "@/db";
 import { whatsappInstances } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
+import { isPhoneBlacklisted } from "@/crm/blacklist";
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -21,16 +22,24 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const isMetaEnabled = process.env.META_WA_ENABLED === "true";
+
   const rawBody = await req.text();
   const signature = req.headers.get("x-hub-signature-256") || "";
   const appSecret = process.env.META_WA_APP_SECRET;
 
-  // Validación de firma HMAC si está configurado el app secret
+  // 1. Validación de firma HMAC si está configurado el app secret
   if (appSecret && metaAdapter.verifyWebhookSignature) {
     const isValid = metaAdapter.verifyWebhookSignature(rawBody, signature, appSecret);
     if (!isValid) {
       return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
     }
+  }
+
+  // 2. Comprobación de interruptor: Deshabilitado preventivamente hasta activación en web de Meta
+  if (!isMetaEnabled) {
+    console.warn("[META_WA_STANDBY] Webhook de Meta recibido pero el canal se encuentra en standby (META_WA_ENABLED=false).");
+    return NextResponse.json({ status: "meta_disabled_standby" }, { status: 200 });
   }
 
   let body: Record<string, unknown>;
@@ -41,25 +50,39 @@ export async function POST(req: NextRequest) {
   }
 
   const messages = metaAdapter.parseWebhookPayload(body);
+  let enqueuedCount = 0;
+  let blockedCount = 0;
 
   for (const msg of messages) {
-    // Buscar la instancia por phone_number_id
+    // Buscar la instancia por número o identificador
     const instance = await db
       .select()
       .from(whatsappInstances)
-      .where(eq(whatsappInstances.phoneNumber, msg.instanceId))
+      .where(
+        or(
+          eq(whatsappInstances.phoneNumber, msg.instanceId),
+          eq(whatsappInstances.name, msg.instanceId)
+        )
+      )
       .limit(1)
       .then((r) => r[0]);
 
-    if (instance) {
-      // Vector cero provisional si no se pasa embedding directo (el turn resolverá)
-      const queryEmbedding = new Array(1536).fill(0.01);
+    if (instance && instance.isActive) {
+      if (!msg.content || msg.content.length === 0) continue;
 
-      await processInboundAgentTurn(instance.organizationId, instance.id, msg, {
-        queryEmbedding,
-      });
+      // Descarte O(1) en Blacklist
+      const blacklisted = await isPhoneBlacklisted(instance.organizationId, msg.fromPhone);
+      if (blacklisted) {
+        blockedCount++;
+        continue;
+      }
+
+      // Encolado desacoplado en Redis con cálculo de embedding real
+      await enqueueWhatsAppTurn(instance.organizationId, instance.id, msg);
+      enqueuedCount++;
     }
   }
 
-  return NextResponse.json({ status: "ok" }, { status: 200 });
+  const finalStatus = blockedCount > 0 && enqueuedCount === 0 ? "blocked" : "enqueued";
+  return NextResponse.json({ status: finalStatus }, { status: 200 });
 }

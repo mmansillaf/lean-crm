@@ -3,7 +3,9 @@ import { db } from "@/db";
 import { messages, conversations, contacts, whatsappInstances } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { wahaAdapter } from "@/channels/waha/adapter";
+import { metaAdapter } from "@/channels/meta/adapter";
 import { crmEvents } from "@/crm/events";
+import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
   const conversationId = req.nextUrl.searchParams.get("conversationId");
@@ -31,6 +33,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "conversationId and content are required" }, { status: 400 });
     }
 
+    const session = await auth();
+    const senderId = session?.user?.id || null;
+
     // Obtener conversación y contacto
     const conv = await db
       .select()
@@ -54,23 +59,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Contact phone not found" }, { status: 400 });
     }
 
-    // Enviar mensaje por WAHA
-    const sendResult = await wahaAdapter.send(
+    // Determinar adaptador de canal (Meta Cloud API o WAHA)
+    let instance: typeof whatsappInstances.$inferSelect | undefined;
+    if (conv.instanceId) {
+      instance = await db
+        .select()
+        .from(whatsappInstances)
+        .where(eq(whatsappInstances.id, conv.instanceId))
+        .limit(1)
+        .then((r) => r[0]);
+    }
+
+    const adapter = instance?.provider === "meta" ? metaAdapter : wahaAdapter;
+    const creds = (instance?.credentials as Record<string, unknown>) || {
+      baseUrl: process.env.WAHA_BASE_URL || "http://localhost:3001",
+      session: "default",
+      apiKey: process.env.WAHA_API_KEY,
+    };
+
+    const sendResult = await adapter.send(
       {
         toPhone: contact.phone,
         content,
         messageType: "text",
       },
-      {
-        baseUrl: process.env.WAHA_BASE_URL || "http://localhost:3001",
-        session: "default",
-        apiKey: process.env.WAHA_API_KEY,
-      }
+      creds
     );
 
     const externalId = sendResult.externalId || `agent_${Date.now()}`;
 
-    // Registrar en BD como mensaje de operador humano
+    // Registrar en BD como mensaje de operador humano con trazabilidad de senderId
     const inserted = await db
       .insert(messages)
       .values({
@@ -78,6 +96,7 @@ export async function POST(req: NextRequest) {
         conversationId: conv.id,
         externalId,
         senderType: "human",
+        senderId,
         content,
         messageType: "text",
         status: sendResult.success ? "sent" : "failed",

@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { deals, contacts, pipelines } from "@/db/schema";
+import { deals, contacts, pipelines, organizations } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const list = await db
+    const orgParam = req.nextUrl.searchParams.get("organizationId") || req.headers.get("x-organization-id");
+    
+    let orgId = orgParam;
+    if (!orgId) {
+      const defaultOrg = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.slug, "algoritmo-juridico"))
+        .limit(1)
+        .then((r) => r[0]);
+      orgId = defaultOrg?.id;
+    }
+
+    const query = db
       .select({
         id: deals.id,
         title: deals.title,
@@ -19,8 +32,11 @@ export async function GET() {
       })
       .from(deals)
       .leftJoin(contacts, eq(deals.contactId, contacts.id))
-      .leftJoin(pipelines, eq(deals.pipelineId, pipelines.id))
-      .orderBy(desc(deals.createdAt));
+      .leftJoin(pipelines, eq(deals.pipelineId, pipelines.id));
+
+    const list = orgId
+      ? await query.where(eq(deals.organizationId, orgId)).orderBy(desc(deals.createdAt))
+      : await query.orderBy(desc(deals.createdAt));
 
     return NextResponse.json({ deals: list });
   } catch (error: any) {
@@ -67,7 +83,7 @@ export async function POST(req: NextRequest) {
         title,
         stageId: stageId || "lead",
         valueCents: valueCents || 0,
-        currency: currency || "USD",
+        currency: currency || "PEN",
       })
       .returning();
 
