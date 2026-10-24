@@ -16,7 +16,7 @@ interface CampaignItem {
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
-  const [testEmail, setTestEmail] = useState("christian.mansilla@gmail.com");
+  const [testEmail, setTestEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -66,18 +66,16 @@ export default function CampaignsPage() {
         {/* Panel de Envíos de Prueba Rápido */}
         <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm">
           <Mail className="w-4 h-4 text-purple-600" />
-          <select
+          <input
+            type="email"
             value={testEmail}
             onChange={(e) => setTestEmail(e.target.value)}
-            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none"
-          >
-            <option value="christian.mansilla@gmail.com">christian.mansilla@gmail.com</option>
-            <option value="chris_serge@hotmail.com">chris_serge@hotmail.com</option>
-            <option value="chris_serge@yahoo.com">chris_serge@yahoo.com</option>
-          </select>
+            placeholder="destinatario@ejemplo.com"
+            className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 focus:outline-none w-52"
+          />
           <button
             onClick={() => handleSendTest(testEmail)}
-            disabled={sending}
+            disabled={sending || !testEmail}
             className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow-sm transition"
           >
             <Send className="w-3.5 h-3.5" />

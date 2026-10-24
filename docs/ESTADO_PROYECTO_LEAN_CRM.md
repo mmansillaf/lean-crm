@@ -13,7 +13,7 @@
 | **PostgreSQL 16 + pgvector** | 🟢 ACTIVO | Contenedor `lean_crm_postgres` en puerto 5432. 16 tablas relacionales + función `fn_lightrag_query`. |
 | **Suite de Pruebas** | 🟢 31/31 PASS | EARS, TDD, EDD y E2E sin fallos (`npm test`). |
 | **Compilación Frontend** | 🟢 BUILD OK | Next.js 15 compilado exitosamente (`next build`, 12 rutas listas). |
-| **Listmonk (Email Campaigns)** | 🟢 CONECTADO | `https://newsletter.vilmamonroy.com` (`cmansilla`). Validado vía API. |
+| **Listmonk (Email Campaigns)** | 🟢 CONECTADO | Configurable vía `LISTMONK_URL` en `.env`. Validado vía API. |
 | **Groq API (Whisper STT)** | 🟢 ACTIVO | Clave configurada y validada en `.env`. Modelo `whisper-large-v3`. |
 | **WhatsApp Dual-Engine** | 🟢 LISTO | Webhooks Meta y WAHA funcionales. Pendiente vincular número real. |
 | **Archivo `.env`** | 🟢 CONFIGURADO | Permisos `600` en la raíz del proyecto. |
