@@ -149,8 +149,7 @@ npm run db:seed
 ```
 
 *Credenciales de acceso inicial*:
-* **Email**: `admin@algoritmojuridico.com`
-* **Contraseña**: `admin123456`
+Configurables en tu `.env` mediante `ADMIN_INITIAL_EMAIL` y `ADMIN_INITIAL_PASSWORD`. Si no se especifican, el script generará una contraseña segura aleatoria y la imprimirá en consola durante la ejecución.
 
 ### 6. Ejecutar en Modo Desarrollo
 ```bash

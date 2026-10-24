@@ -12,8 +12,8 @@ export function UserNav() {
           <User className="w-4 h-4" />
         </div>
         <div className="truncate">
-          <span className="text-xs font-semibold text-slate-800 block truncate">Admin</span>
-          <span className="text-[10px] text-slate-400 block truncate">admin@algoritmojuridico.com</span>
+          <span className="text-xs font-semibold text-slate-800 block truncate">Administrador</span>
+          <span className="text-[10px] text-slate-400 block truncate">Sesión Activa</span>
         </div>
       </div>
       <button

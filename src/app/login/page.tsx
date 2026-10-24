@@ -10,8 +10,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/inbox";
 
-  const [email, setEmail] = useState("admin@algoritmojuridico.com");
-  const [password, setPassword] = useState("Password2026!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

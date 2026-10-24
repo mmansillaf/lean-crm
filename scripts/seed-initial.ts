@@ -30,8 +30,14 @@ async function main() {
   }
 
   // 2. Crear Usuario Administrador si no existe
-  const adminEmail = process.env.ADMIN_INITIAL_EMAIL || "admin@algoritmojuridico.com";
-  const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || "admin123456";
+  const adminEmail = process.env.ADMIN_INITIAL_EMAIL || "admin@example.com";
+  let adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+  let isGenerated = false;
+
+  if (!adminPassword) {
+    adminPassword = Math.random().toString(36).slice(-8) + "Aa1!";
+    isGenerated = true;
+  }
 
   let adminUser = await db.query.users.findFirst({
     where: eq(users.email, adminEmail),
@@ -44,11 +50,15 @@ async function main() {
       .values({
         email: adminEmail,
         passwordHash,
-        fullName: "Administrador Algoritmo Jurídico",
+        fullName: "Administrador del Sistema",
       })
       .returning();
     adminUser = insertedUser;
     console.log(`Usuario administrador creado: ${adminUser.email}`);
+    if (isGenerated) {
+      console.log(`[SEGURIDAD] Contraseña temporal autogenerada: ${adminPassword}`);
+      console.log(`(Recomendado: define ADMIN_INITIAL_PASSWORD en tu archivo .env)`);
+    }
   } else {
     console.log(`Usuario administrador existente: ${adminUser.email}`);
   }

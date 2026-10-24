@@ -99,8 +99,7 @@ npm run db:seed
 ```
 
 Credenciales creadas por el comando `db:seed`:
-- **Usuario**: `admin@algoritmojuridico.com`
-- **Contraseña**: `admin123456`
+Configurables en tu `.env` mediante `ADMIN_INITIAL_EMAIL` y `ADMIN_INITIAL_PASSWORD`. Por defecto, si no se especifican en `.env`, el script autogenera una clave segura temporal y la muestra en la consola.
 
 ---
 
