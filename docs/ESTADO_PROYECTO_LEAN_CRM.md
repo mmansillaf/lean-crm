@@ -1,46 +1,59 @@
-# ESTADO DEL PROYECTO LEAN CRM (CHECKPOINT DE REINICIO)
-**Fecha:** 2026-10-22  
+# ESTADO DEL PROYECTO LEAN CRM (CHECKPOINT ACTIVO)
+**Fecha de Actualización:** 2026-10-24 22:53:00 -05:00  
 **Ruta:** `/home/cmansilla/Descargas/pycode/lean_crm`  
-**Rama Git:** `master`  
+**Rama Git:** `main` (sincronizada con `origin/main` en `https://github.com/mmansillaf/lean-crm`)  
 
 ---
 
 ## 1. Resumen de Componentes y Estado Operativo
 
-| Componente | Estado | Detalle |
+| Componente | Estado | Detalle Técnico |
 |---|:---:|---|
-| **Estilos & UI (Tailwind + PostCSS)** | 🟢 CORREGIDO | Agregados `tailwind.config.js` y `postcss.config.mjs`. Compilación de CSS con diseño utilitario activo (16KB). |
-| **PostgreSQL 16 + pgvector** | 🟢 ACTIVO | Contenedor `lean_crm_postgres` en puerto 5432. 16 tablas relacionales + función `fn_lightrag_query`. |
-| **Suite de Pruebas** | 🟢 31/31 PASS | EARS, TDD, EDD y E2E sin fallos (`npm test`). |
-| **Compilación Frontend** | 🟢 BUILD OK | Next.js 15 compilado exitosamente (`next build`, 12 rutas listas). |
-| **Listmonk (Email Campaigns)** | 🟢 CONECTADO | Configurable vía `LISTMONK_URL` en `.env`. Validado vía API. |
-| **Groq API (Whisper STT)** | 🟢 ACTIVO | Clave configurada y validada en `.env`. Modelo `whisper-large-v3`. |
-| **WhatsApp Dual-Engine** | 🟢 LISTO | Webhooks Meta y WAHA funcionales. Pendiente vincular número real. |
-| **Archivo `.env`** | 🟢 CONFIGURADO | Permisos `600` en la raíz del proyecto. |
+| **Frontend & UI (Next.js 15.1.7 / React 19)** | 🟢 PRODUCCIÓN | 20 rutas compiladas sin errores (Inbox Pro, Pipeline Kanban, Knowledge Graph, Campaigns, Settings). |
+| **Autenticación (Auth.js v5 Beta)** | 🟢 ACTIVO | JWT cifrado en cookies `httpOnly`, Edge Middleware de protección de rutas, sin credenciales quemadas. |
+| **PostgreSQL 16 + pgvector** | 🟢 ACTIVO | Contenedor `lean_crm_postgres` en puerto 5432. 16 tablas relacionales, multitenancy por `organization_id`. |
+| **Redis 7 (Alpine)** | 🟢 ACTIVO | Contenedor `lean_crm_redis` en puerto 6379. Cola FIFO de concurrencia y Pub/Sub SSE para actualizaciones en vivo. |
+| **Motor LightRAG** | 🟢 OPERATIVO | Indexación HNSW (`vector(1536)`) y travesía recursiva SQL CTE (`fn_lightrag_query`) a múltiples saltos. |
+| **Procesamiento de Audio (STT)** | 🟢 OPERATIVO | Detección binaria de magic bytes OGG/Opus (`OggS`) y transcripción Whisper vía Groq API / OpenAI fallback. |
+| **Canales WhatsApp Dual** | 🟢 LISTO | Meta Cloud API oficial con webhook HMAC diferido a Redis (`META_WA_ENABLED=false`) y gateway WAHA NOWEB. |
+| **Campañas Masivas (Listmonk)** | 🟢 CONECTADO | API REST de Listmonk y acceso a base de datos compartida, con panel de envíos de prueba dinámico. |
+| **Suite de Pruebas Automatizadas** | 🟢 34/34 PASS | TDD, EARS, EDD y simulaciones E2E de ciclo de vida completas (`npm test`). |
+| **Seguridad y Auditoría de Secretos** | 🟢 AUDITADO | Cero claves o contraseñas en código/historial. Push protection de GitHub validado. `.env` ignorado. |
+| **Colaboración GitHub** | 🟢 ENVIADO | Invitación activa enviada a `mendoza999` (`mmi.mendoza@gmail.com`). |
 
 ---
 
-## 2. Próximo Paso Definido (Roadmap Inmediato)
-
-**Objetivo:** Permitir que el agente responda por WhatsApp sobre un documento PDF vía LightRAG.
-
-1. **Parser PDF:** Instalar e implementar extractor de texto (`pdf-parse` o equivalente).
-2. **Embeddings Reales:** Reemplazar vectores dummy en `turn.ts` y webhooks con generador real (`text-embedding-3-small`).
-3. **Pipeline de Ingesta:** Endpoint/script para cargar PDF, extraer entidades/relaciones con `extractGraphFromText` y poblar `knowledge_sources` / `knowledge_entities`.
-
----
-
-## 3. Comandos para Reanudar tras el Reinicio
+## 2. Comandos Operativos y de Ciclo de Vida
 
 ```bash
 cd /home/cmansilla/Descargas/pycode/lean_crm
 
-# 1. Asegurar contenedor de base de datos arriba:
-docker compose up -d postgres
+# 1. Iniciar contenedores de infraestructura
+docker compose up -d postgres redis
 
-# 2. Iniciar el servidor de desarrollo:
+# 2. Sincronizar esquema y sembrar usuario administrador inicial
+npm run db:push
+npm run db:seed
+
+# 3. Ejecutar suite de pruebas completa
+npm test
+
+# 4. Iniciar servidor de desarrollo
 npm run dev
 
-# 3. Verificar tests:
-npm test
+# 5. Compilación y verificación de tipos para producción
+npm run build
 ```
+
+---
+
+## 3. Estado de Tareas y Pendientes
+
+- [x] Limpieza total de referencias médicas anteriores y focalización en LegalTech / Algoritmo Jurídico.
+- [x] Implementación y auditoría de Auth.js v5 con middleware en Edge Runtime.
+- [x] Refactorización de webhook de WhatsApp con conmutador en Redis y cola asíncrona.
+- [x] Sanitización completa de secretos, APIs y contraseñas estáticas en el repositorio público.
+- [x] Elaboración de `README.md` técnico-visual y `docs/MANUAL_DESARROLLO_Y_USO.md`.
+- [x] Publicación en repositorio remoto GitHub (`mmansillaf/lean-crm`) e invitación a colaborador.
+- [ ] Configuración de pasarela de pago Izipay (pendiente de credenciales definitivas del proveedor).
+- [ ] Activación de cuenta oficial Meta Business WhatsApp (cuando el número dedicado esté habilitado).
